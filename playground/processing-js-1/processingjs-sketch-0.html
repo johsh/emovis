@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Hello Web - Processing.js Test</title>
+<script src="processing.js"></script>
+</head>
+<body>
+	<h1>Processing.js Test</h1>
+	<p>This is my first Processing.js web-based sketch:</p>
+
+	<script type="text/processing" data-processing-target="processing-canvas">
+	var rotationY = 0;
+	var polygon = [];
+	void setup() {
+		size(500, 500, OPENGL);
+		noStroke();
+ 		background(150);
+
+ 		for (var i=0;i<6;i++){
+ 			polygon.push({x:random()*100, y: random()*100-50, z: random()*100-50});
+ 		}
+ 		polygon.sort(function(a,b){return a.x-b.x;})
+		println('hello web!');
+	}
+
+	void draw(){
+		background(150);
+		directionalLight(226, 226, 226, 0, 1, -1);
+		ambientLight(102, 102, 102);
+
+		translate(width/2, height/2);
+		rotateY(rotationY/(20*PI));
+		//rotateX(rotationY/(10*PI));
+		rotationY++;
+
+		fill(200);		
+		stroke(255)
+		beginShape(TRIANGLE_FAN);
+		polygon.forEach(function(d){
+			vertex(d.x, d.y, d.z);
+		})
+		/*vertex(30, 20, -50);
+		vertex(85, 20, -50);
+		vertex(85, 75, -50);
+		vertex(30, 75, -50);*/
+		endShape();
+
+		/*rotateY(PI/5);
+		box(40);
+		translate(60, 0, 0);
+		sphere(30);*/
+	}
+	</script>
+	<canvas id="processing-canvas"> </canvas>
+</body>
+</html>
