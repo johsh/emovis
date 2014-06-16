@@ -33,13 +33,13 @@
 			scene.add( directionalLight );
 
 			// WIREFRAME MATERIAL 
-			//var material = new THREE.MeshNormalMaterial();
-			var material = new THREE.MeshBasicMaterial({
+			var material = new THREE.MeshNormalMaterial();
+			var wire = new THREE.MeshBasicMaterial({
         		wireframe: true,
       		});
 
 			//GLOBAL SIZE
-			var size = 2;
+			var size = 1;
 
 			var objects = [];
 
@@ -50,8 +50,7 @@
 			tmp.vertices.push(new THREE.Vector3(0,1,0));
 			tmp.faces.push(new THREE.Face3(0,1,2));
 
-			var triangle = new THREE.Mesh(getFlexibleEdges(tmp), material);
-			//var triangle = new THREE.Mesh(tmp, material);
+			var triangle = new THREE.Mesh(getFlexibleEdges(tmp), wire);
 			objects.push(triangle);
 
 			//ADD CUBE
@@ -59,7 +58,7 @@
 			objects.push(cube);	
 
 			//TETRAHEDRON
-			var tetra = new THREE.Mesh(getFlexibleEdges(new THREE.TetrahedronGeometry(size)), material)
+			var tetra = new THREE.Mesh(new THREE.TetrahedronGeometry(size), material)
 			objects.push(tetra);
 
 			//SPHERE
