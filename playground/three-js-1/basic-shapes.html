@@ -1,6 +1,6 @@
 <html>
 	<head>
-		<title>My first Three.js app</title>
+		<title>Basic Shapes</title>
 		<style>
 			canvas { 
 				width: 100%; 
@@ -11,6 +11,7 @@
 	<body>
 		<script src="three.min.js"></script>
 		<script src="SubdivisionModifier.js"></script>
+		<script src="resources/quickhull.js"></script>
 		<script> 
 
 			// SOURCE
@@ -33,11 +34,6 @@
 
 			// WIREFRAME MATERIAL 
 			var material = new THREE.MeshNormalMaterial();
-			/*var material = new THREE.MeshBasicMaterial( { 
-				color: 0xbbffbb,
-				//wireframe: true,
-				vertexColors: 0x00ffff,
-			} );*/
 
 			//GLOBAL SIZE
 			var size = 1;
@@ -56,11 +52,23 @@
 			var sphere = new THREE.SphereGeometry(size/1.5);
 			objects.push(new THREE.Mesh(sphere, material));			
 
+			//RANDOM POLYGON
+			var geometry = new THREE.Geometry(); 
+			for (var i=0; i<20; i++){
+				var v = new THREE.Vector3(	1.5*size*(Math.random()-.5),
+											1.5*size*(Math.random()-.5),
+											1.5*size*(Math.random()-.5));
+				v.id = i;
+				geometry.vertices.push(v);
+			}
+			var poly = QuickHull(geometry)
 
+
+			objects.push(new THREE.Mesh(poly, material));
 			
 			objects.forEach(function(o,i){
-				o.applyMatrix( new THREE.Matrix4().makeTranslation(-(objects.length)*1, 0, 0) );
-				o.applyMatrix( new THREE.Matrix4().makeTranslation((size+i)*2, 0, 0) );
+				o.applyMatrix( new THREE.Matrix4().makeTranslation(-(objects.length)*1*size, 0, 0) );
+				o.applyMatrix( new THREE.Matrix4().makeTranslation((size+i)*2*size, 0, 0) );
 				scene.add(o);
 			})
 				
