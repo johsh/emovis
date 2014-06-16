@@ -33,41 +33,166 @@
 			scene.add( directionalLight );
 
 			// WIREFRAME MATERIAL 
-			var material = new THREE.MeshNormalMaterial();
+			//var material = new THREE.MeshNormalMaterial();
+			var material = new THREE.MeshBasicMaterial({
+        		wireframe: true,
+      		});
 
 			//GLOBAL SIZE
-			var size = 1;
+			var size = 2;
 
 			var objects = [];
 
+			//ADD TRIANGLE
+			var tmp = new THREE.Geometry(); 
+			tmp.vertices.push(new THREE.Vector3(0,0,0));
+			tmp.vertices.push(new THREE.Vector3(1,0,0));
+			tmp.vertices.push(new THREE.Vector3(0,1,0));
+			tmp.faces.push(new THREE.Face3(0,1,2));
+
+			var triangle = new THREE.Mesh(getFlexibleEdges(tmp), material);
+			//var triangle = new THREE.Mesh(tmp, material);
+			objects.push(triangle);
+
 			//ADD CUBE
-			var cube = new THREE.BoxGeometry(size,size,size); 
-			objects.push(new THREE.Mesh(cube, material));
+			var cube = new THREE.Mesh(new THREE.BoxGeometry(size,size,size), material); 
+			objects.push(cube);	
 
 			//TETRAHEDRON
-			var tetra = new THREE.TetrahedronGeometry(size)
-			objects.push(new THREE.Mesh(tetra, material));
+			var tetra = new THREE.Mesh(getFlexibleEdges(new THREE.TetrahedronGeometry(size)), material)
+			objects.push(tetra);
 
 			//SPHERE
-			var sphere = new THREE.SphereGeometry(size/1.5);
-			objects.push(new THREE.Mesh(sphere, material));			
+			var sphere = new THREE.Mesh(new THREE.SphereGeometry(size/1.5), material);
+			objects.push();
 
 			//RANDOM POLYGON
-			var geometry = new THREE.Geometry(); 
+			var geom = new THREE.Geometry(); 
 			for (var i=0; i<20; i++){
 				var v = new THREE.Vector3(	1.5*size*(Math.random()-.5),
 											1.5*size*(Math.random()-.5),
 											1.5*size*(Math.random()-.5));
 				v.id = i;
-				geometry.vertices.push(v);
+				geom.vertices.push(v);
 			}
-			var poly = QuickHull(geometry)
-
-
-			objects.push(new THREE.Mesh(poly, material));
+			var poly = new THREE.Mesh(QuickHull(geom), material);
+			objects.push(poly);
 			
+			//EDGINESS
+			function getFlexibleEdges(geometry){
+				//INIT NEW GEOMETRY, WHERE ALL THE 
+				//FOLLOWING STUFF WILL BE PUSHED TO
+				var newGeometry = new THREE.Geometry();
+				newGeometry.flexibleEdges = [];
+
+				var len = geometry.faces.length;
+				for (var i=0; i<len; i++){
+					console.log("face "+i)
+
+					//CURRENT FACE a, b, c
+					var a = geometry.faces[i].a;
+					var b = geometry.faces[i].b;
+					var c = geometry.faces[i].c;
+
+					//GET CENTER
+					var center = new THREE.Vector3();
+					center.add(geometry.vertices[a]);
+					center.add(geometry.vertices[b]);
+					center.add(geometry.vertices[c]);
+					center.divideScalar(3);
+
+					//GET VECTORS TO CENTER
+					var v1 = new THREE.Vector3();
+					v1.copy(center);
+					v1.sub(geometry.vertices[a]);
+					
+					var v2 = new THREE.Vector3();
+					v2.copy(center);
+					v2.sub(geometry.vertices[b]);
+					
+					var v3 = new THREE.Vector3();
+					v3.copy(center);
+					v3.sub(geometry.vertices[c]);
+
+					//FIRST INDEX
+					var a1 = geometry.vertices.length;
+					var b1 = geometry.vertices.length+1;
+					var c1 = geometry.vertices.length+2;
+
+					//NOW THE MAGIC HAPPENS
+					//ADD SOURCE, VECTOR AND 
+					newGeometry.flexibleEdges.push({source: a, vector: v1, target: a1});
+					newGeometry.flexibleEdges.push({source: b, vector: v2, target: b1});
+					newGeometry.flexibleEdges.push({source: c, vector: v3, target: c1});
+
+					//THEN ADD INNER VECTORS - 1 TIME FOR OUTER POINTS
+					var tmp;
+					for (var _i=0;_i<2;_i++){
+						tmp = new THREE.Vector3();
+						tmp.copy(geometry.vertices[a]);
+						newGeometry.vertices.push(tmp);
+
+						tmp = new THREE.Vector3();
+						tmp.copy(geometry.vertices[b]);
+						newGeometry.vertices.push(tmp);
+
+						tmp = new THREE.Vector3();
+						tmp.copy(geometry.vertices[c]);
+						newGeometry.vertices.push(tmp);
+					}
+
+					//BUILT NEW FACES
+					/*
+						     a 		new faces:
+						     /\			a, c, a1	and origin-face 
+						    /a1\		a, b1, b 		a, b, c
+						   / /\ \		b, c1, c 	becomes
+						  / /  \ \		a, a1,b1 		a1, b1, c1
+						 / b1--c1 \		b, b1, c1
+						b----------c 	c, c1, a1
+					*/
+					newGeometry.faces.push(new THREE.Face3(a, c, a1));
+					newGeometry.faces.push(new THREE.Face3(a, b1, b));
+					newGeometry.faces.push(new THREE.Face3(b, c1, c));
+
+					newGeometry.faces.push(new THREE.Face3(a, a1, b1));
+					newGeometry.faces.push(new THREE.Face3(b, b1, c1));
+					newGeometry.faces.push(new THREE.Face3(c, c1, a1));
+
+					newGeometry.faces.push(new THREE.Face3(a1, b1, c1));
+				}
+
+				return newGeometry;
+			}
+
+			//TEST
+			//	SmoothGeometry(tetra, .5);
+
+			//THIS FUNCTION PUTS DOUBLED CORNER POINTS TOWARDS THE CENTER
+			function smoothGeometry(obj, roundness){
+				if (roundness < 0 || roundness > 1) return;
+				else if (obj.geometry.flexibleEdges == undefined)
+					obj = new THREE.Mesh(getFlexibleEdges(obj.geometry), material);
+
+				obj.geometry.flexibleEdges.forEach(function(edge){
+					//COPY a POINT INTO a1
+					obj.geometry.vertices[edge.target].copy(obj.geometry.vertices[edge.source]);
+
+					//COPY vector AND scale BY roundness
+					var _v = new THREE.Vector3().copy(edge.vector);
+					_v.multiplyScalar(roundness);
+
+					//FINALLY PUT target TOWARDS THE CENTER BY FACTOR roundness
+					obj.geometry.vertices[edge.target].add(_v);
+				});
+
+				obj.geometry.verticesNeedUpdate = true;
+
+			} // IT IS NECESSARY TO PERFORM A verticesNeedUpdate = true AFTERWARDS!
+
+			//ROTATE STUFF 
 			objects.forEach(function(o,i){
-				o.applyMatrix( new THREE.Matrix4().makeTranslation(-(objects.length)*1*size, 0, 0) );
+				o.applyMatrix( new THREE.Matrix4().makeTranslation(-(objects.length)*2*size, 0, 0) );
 				o.applyMatrix( new THREE.Matrix4().makeTranslation((size+i)*2*size, 0, 0) );
 				scene.add(o);
 			})
@@ -75,8 +200,9 @@
 
 
 			/* HERE THE subdivision MAGIC HAPPENS */
-			//var modifier = new THREE.SubdivisionModifier( 4 );
-			//modifier.modify(geom);
+			smoothGeometry(triangle, .2);
+			var modifier = new THREE.SubdivisionModifier( 1 );
+			//modifier.modify(triangle.geometry);
 
 
 			//var cube = new THREE.Mesh( geometry, material ); 
