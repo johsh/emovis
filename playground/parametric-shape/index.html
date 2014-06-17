@@ -1,0 +1,198 @@
+<html>
+	<head>
+		<title>My first Three.js app</title>
+		<style>
+			canvas { 
+				width: 100%; 
+				height: 100% 
+			}
+		</style>
+	</head>
+	<body>
+		<script src="../../lib/three.min.js"></script>
+		<script src="../../lib/dat.gui.min.js"></script>
+		<script src="../../lib/SubdivisionModifier.js"></script>
+		<script src="../../lib/jquery-2.1.1.min.js"></script>
+		<script>
+
+		var ParametricCube = function() {
+
+			this = {};
+			self = this;
+			this.geometry = new THREE.Geometry();
+
+			/* vertice-index seen from 'above'
+
+				1 2 
+				0 3
+
+			*/
+
+			this.outerVertices = {
+				bottom : [
+				// bottom
+				new THREE.Vector3(0,0,0),
+				new THREE.Vector3(0,0,1),
+				new THREE.Vector3(1,0,1),
+				new THREE.Vector3(1,0,0)], 
+				top : [
+				// top
+				new THREE.Vector3(0,1,0),
+				new THREE.Vector3(0,1,1),
+				new THREE.Vector3(1,1,1),
+				new THREE.Vector3(1,1,0)]
+			};
+
+
+			this.centroids = {
+				front : THREE.Vector3(0.5,0.5,0),
+				back : THREE.Vector3(0.5,0.5,1),
+				left : THREE.Vector3(0,0.5,0.5),
+				right : THREE.Vector3(1,0.5,0.5),
+				top : THREE.Vector3(0.5,1,0.5),
+				bottom : THREE.Vector3(0.5,0,0.5)
+			};
+
+			// 0 = centroid, 1 = outerVertice
+			this.set = function(amount) {
+				this.innerVertices = {
+					front :
+					[ 
+						{ v : this.geometry.vertices.push(this.centroids.front.copy().lerp( this.outerVertices.bottom[0], amount), id: this.geometry.vertices.length-1},
+						{ v : this.geometry.vertices.push(this.centroids.front.copy().lerp( this.outerVertices.top[0], amount), id: this.geometry.vertices.length-1},
+						{ v : this.geometry.vertices.push(this.centroids.front.copy().lerp( this.outerVertices.top[3], amount), id: this.geometry.vertices.length-1},
+						{ v : this.geometry.vertices.push(this.centroids.front.copy().lerp( this.outerVertices.bottom[3], amount), id: this.geometry.vertices.length-1}
+					],
+					back :
+					[ 
+						{ v : this.geometry.vertices.push(this.centroids.back.copy().lerp( this.outerVertices.bottom[2], amount), id: this.geometry.vertices.length-1},
+						{ v : this.geometry.vertices.push(this.centroids.back.copy().lerp( this.outerVertices.top[2], amount), id: this.geometry.vertices.length-1},
+						{ v : this.geometry.vertices.push(this.centroids.back.copy().lerp( this.outerVertices.top[1], amount), id: this.geometry.vertices.length-1},
+						{ v : this.geometry.vertices.push(this.centroids.back.copy().lerp( this.outerVertices.bottom[1], amount), id: this.geometry.vertices.length-1}
+					],
+					left :
+					[
+						{ v : this.geometry.vertices.push(this.centroids.left.copy().lerp( this.outerVertices.bottom[1], amount), id: this.geometry.vertices.length-1},
+						{ v : this.geometry.vertices.push(this.centroids.left.copy().lerp( this.outerVertices.top[1], amount), id: this.geometry.vertices.length-1},
+						{ v : this.geometry.vertices.push(this.centroids.left.copy().lerp( this.outerVertices.top[0], amount), id: this.geometry.vertices.length-1},
+						{ v : this.geometry.vertices.push(this.centroids.left.copy().lerp( this.outerVertices.bottom[0], amount), id: this.geometry.vertices.length-1}
+					],
+					right :
+					[ 
+						{ v : this.geometry.vertices.push(this.centroids.right.copy().lerp( this.outerVertices.bottom[3], amount), id: this.geometry.vertices.length-1},
+						{ v : this.geometry.vertices.push(this.centroids.right.copy().lerp( this.outerVertices.top[3], amount), id: this.geometry.vertices.length-1},
+						{ v : this.geometry.vertices.push(this.centroids.right.copy().lerp( this.outerVertices.top[2], amount), id: this.geometry.vertices.length-1},
+						{ v : this.geometry.vertices.push(this.centroids.right.copy().lerp( this.outerVertices.bottom[2], amount), id: this.geometry.vertices.length-1}
+					],
+					top :
+					[ 
+						{ v : this.geometry.vertices.push(this.centroids.top.copy().lerp( this.outerVertices.top[0], amount), id: this.geometry.vertices.length-1},
+						{ v : this.geometry.vertices.push(this.centroids.top.copy().lerp( this.outerVertices.top[1], amount), id: this.geometry.vertices.length-1},
+						{ v : this.geometry.vertices.push(this.centroids.top.copy().lerp( this.outerVertices.top[2], amount), id: this.geometry.vertices.length-1},
+						{ v : this.geometry.vertices.push(this.centroids.top.copy().lerp( this.outerVertices.top[3], amount), id: this.geometry.vertices.length-1}
+					],
+					bottom :
+					[ 
+						{ v : this.geometry.vertices.push(this.centroids.bottom.copy().lerp( this.outerVertices.bottom[0]), id: this.geometry.vertices.length-1},
+						{ v : this.geometry.vertices.push(this.centroids.bottom.copy().lerp( this.outerVertices.bottom[1]), id: this.geometry.vertices.length-1},
+						{ v : this.geometry.vertices.push(this.centroids.bottom.copy().lerp( this.outerVertices.bottom[2]), id: this.geometry.vertices.length-1},
+						{ v : this.geometry.vertices.push(this.centroids.bottom.copy().lerp( this.outerVertices.bottom[3]), id: this.geometry.vertices.length-1}
+					]
+				};
+
+				this.geometry.faces.push(new THREE.Face(this.innerVertices.bottom[0].id, this.innerVertices.bottom[1].id, this.innerVertices.bottom[2].id));
+				this.geometry.faces.push(new THREE.Face(this.innerVertices.bottom[2].id, this.innerVertices.bottom[3].id, this.innerVertices.bottom[0].id));
+			};
+
+	};
+
+			/*
+
+			var FizzyText = function() {
+			  this.message = 'dat.gui';
+			  this.speed = 0.8;
+			  this.displayOutline = false;
+			  this.explode = function() { ... };
+			  // Define render logic ...
+			};
+
+			window.onload = function() {
+			  var text = new FizzyText();
+			  var gui = new dat.GUI();
+			  gui.add(text, 'message');
+			  gui.add(text, 'speed', -5, 5);
+			  gui.add(text, 'displayOutline');
+			  gui.add(text, 'explode');
+			};
+
+			*/
+
+			// SOURCE
+			// http://threejs.org/docs/index.html#Manual/Introduction/Creating_a_scene
+
+			// SET UP SCENE
+			var scene = new THREE.Scene();
+			var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000);
+			var renderer = new THREE.WebGLRenderer();
+			renderer.setSize( $(window).innerWidth(), $(window).innerHeight() );
+			document.body.appendChild( renderer.domElement );
+
+			// LIGHT
+			//var light = new THREE.AmbientLight( 0x404040 );
+			//scene.add(light);
+
+
+			var directionalLight = new THREE.DirectionalLight( 0xffffff, 0.1 ); 
+			directionalLight.position.set( 0, 1, 0 ); 
+			scene.add( directionalLight );
+
+			// ADD CUBE
+			var geometry = new THREE.BoxGeometry(1,1,1); 
+
+
+geom.faces.push( new THREE.Face3( 0, 1, 2 ) );
+geom.faces.push( new THREE.Face3( 2, 3, 0 ) );
+geom.faces.push( new THREE.Face3( 0, 1, 5 ) );
+geom.faces.push( new THREE.Face3( 4, 5, 0 ) );
+
+geom.faces.push( new THREE.Face3( 3, 2, 6 ) );
+geom.faces.push( new THREE.Face3( 6, 7, 3 ) );
+
+geom.faces.push( new THREE.Face3( 8, 9, 5 ) );
+geom.faces.push( new THREE.Face3( 8, 5, 4 ) );
+
+geom.computeFaceNormals();
+
+			var material = new THREE.MeshBasicMaterial( { 
+				color: 0x00ff00,
+				wireframe: true,
+				vertexColors: 0x00ffff,
+			} );
+
+			var modifier = new THREE.SubdivisionModifier( 2 );
+			modifier.modify(geom);
+
+var object = new THREE.Mesh( geom, material );
+
+scene.add(object);
+
+			//var cube = new THREE.Mesh( geometry, material ); 
+			//scene.add( cube ); 
+			camera.position.z = 5;
+
+
+			var cube = new THREE.Mesh( geometry, material ); 
+			//scene.add( cube ); 
+
+
+			//RENDER
+			function render() { requestAnimationFrame(render); 
+				object.rotation.x += 0.01; 
+				object.rotation.y += 0.01;
+				renderer.render(scene, camera); 
+			}
+
+			render();
+		</script>
+	</body>
+</html>
