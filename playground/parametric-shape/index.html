@@ -102,6 +102,9 @@
 
 				this.geometry.faces.push(new THREE.Face(this.innerVertices.bottom[0].id, this.innerVertices.bottom[1].id, this.innerVertices.bottom[2].id));
 				this.geometry.faces.push(new THREE.Face(this.innerVertices.bottom[2].id, this.innerVertices.bottom[3].id, this.innerVertices.bottom[0].id));
+
+				this.geometry.geom.computeFaceNormals();
+
 			};
 
 	};
@@ -131,11 +134,16 @@
 			// http://threejs.org/docs/index.html#Manual/Introduction/Creating_a_scene
 
 			// SET UP SCENE
+
+
 			var scene = new THREE.Scene();
 			var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000);
 			var renderer = new THREE.WebGLRenderer();
 			renderer.setSize( $(window).innerWidth(), $(window).innerHeight() );
 			document.body.appendChild( renderer.domElement );
+
+			var pc = new ParametricCube();
+			pc.set(0.5);
 
 			// LIGHT
 			//var light = new THREE.AmbientLight( 0x404040 );
@@ -149,20 +157,6 @@
 			// ADD CUBE
 			var geometry = new THREE.BoxGeometry(1,1,1); 
 
-
-geom.faces.push( new THREE.Face3( 0, 1, 2 ) );
-geom.faces.push( new THREE.Face3( 2, 3, 0 ) );
-geom.faces.push( new THREE.Face3( 0, 1, 5 ) );
-geom.faces.push( new THREE.Face3( 4, 5, 0 ) );
-
-geom.faces.push( new THREE.Face3( 3, 2, 6 ) );
-geom.faces.push( new THREE.Face3( 6, 7, 3 ) );
-
-geom.faces.push( new THREE.Face3( 8, 9, 5 ) );
-geom.faces.push( new THREE.Face3( 8, 5, 4 ) );
-
-geom.computeFaceNormals();
-
 			var material = new THREE.MeshBasicMaterial( { 
 				color: 0x00ff00,
 				wireframe: true,
@@ -172,9 +166,9 @@ geom.computeFaceNormals();
 			var modifier = new THREE.SubdivisionModifier( 2 );
 			modifier.modify(geom);
 
-var object = new THREE.Mesh( geom, material );
+			var object = new THREE.Mesh( geom, material );
 
-scene.add(object);
+			scene.add(object);
 
 			//var cube = new THREE.Mesh( geometry, material ); 
 			//scene.add( cube ); 
