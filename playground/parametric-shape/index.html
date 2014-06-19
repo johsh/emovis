@@ -46,33 +46,50 @@
 
 		var emoVIZ = function()
 		{
-
+			self = this;
 
 			this.scene = new THREE.Scene();
 			this.camera = new THREE.PerspectiveCamera( 75, $(window).innerWidth() / $(window).innerHeight(), 0.1, 1000);
 			this.controls = new THREE.OrbitControls( this.camera );
 			this.renderer = new THREE.WebGLRenderer();
 			this.renderer.setSize( $(window).innerWidth(), $(window).innerHeight() );
+			this.renderer.setClearColor( 0xffffff, 1 );
+
+
+			this.pointLight = new THREE.DirectionalLight( 0xffffff );
+			this.scene.add( this.pointLight );
+			this.pointLight.position.set(0, 1, 1);
 
 			//scene.add( cube ); 
-			this.camera.position.z = 5;
+			this.camera.position.set(0, 10, 0);
 			this.parametricCube = new ParametricCube();
 			this.parametricCube.generateMesh();
 
-			this.directionalLight = new THREE.DirectionalLight( 0xffffff, 0.1 ); 
+
 			this.scene.add( this.parametricCube.mesh );
-			this.scene.add( this.parametricCube.meshSmoothed );
-			this.scene.add( this.directionalLight );
 
 			// parameters for our shape
 			this.parameters = {
-				  ratio :  0.0, scale : 0.0
+				  ratio :  0.0, scale : 0.0, 
+				  smooth : function() {
+				  	self.parametricCube.smooth();
+				  }, 
+				  setWireframe : function() {
+				  	self.parametricCube.setWireframe();
+				  }, 
+				  setMaterial : function() {
+				  	self.parametricCube.setMaterial();
+				  }
 			};
 
 
 			this.gui = new dat.GUI();
 			this.ratio = this.gui.add(this.parameters, 'ratio', 0, 1);
 			this.scale = this.gui.add(this.parameters, 'scale', 0, 1);
+			this.scale = this.gui.add(this.parameters, 'smooth');
+			this.scale = this.gui.add(this.parameters, 'setWireframe');
+			this.scale = this.gui.add(this.parameters, 'setMaterial');
+
 
 			self = this;
 
@@ -251,14 +268,39 @@
 			this.geometry.faces.push( new THREE.Face3( this.innerVertices.right[0].id, this.innerVertices.right[1].id, this.innerVertices.right[2].id) );
 			this.geometry.faces.push( new THREE.Face3( this.innerVertices.right[2].id, this.innerVertices.right[3].id, this.innerVertices.right[0].id) );
 
-			this.geometry.faces.push( new THREE.Face3( 4, this.innerVertices.right[1].id, this.innerVertices.right[0].id) );
-			this.geometry.faces.push( new THREE.Face3( 4, 3, this.innerVertices.right[1].id) );
+			this.geometry.faces.push( new THREE.Face3( 7, this.innerVertices.right[1].id, this.innerVertices.right[0].id) );
+			this.geometry.faces.push( new THREE.Face3( 7, 3, this.innerVertices.right[1].id) );
 			this.geometry.faces.push( new THREE.Face3( 3, this.innerVertices.right[2].id, this.innerVertices.right[1].id) );
 			this.geometry.faces.push( new THREE.Face3( 3, 2, this.innerVertices.right[2].id) );
 			this.geometry.faces.push( new THREE.Face3( 2, this.innerVertices.right[3].id, this.innerVertices.right[2].id) );
 			this.geometry.faces.push( new THREE.Face3( 2, 6, this.innerVertices.right[3].id) );
 			this.geometry.faces.push( new THREE.Face3( 6, this.innerVertices.right[0].id, this.innerVertices.right[3].id) );
-			this.geometry.faces.push( new THREE.Face3( 6, 4, this.innerVertices.right[0].id) );
+			this.geometry.faces.push( new THREE.Face3( 6, 7, this.innerVertices.right[0].id) );
+
+
+			for ( var i = 0; i < this.geometry.faces.length; i ++ ) {
+				var f  = this.geometry.faces[ i ];
+				for( var j = 0; j < 3; j++ ) {
+					var color = new THREE.Color( 0xffffff );
+					f.vertexColors.push(color);
+				}
+
+			}
+
+
+
+
+			this.updateVertexColor = function() {
+				var abc = "abc";
+				for ( var i = 0; i < this.geometry.faces.length; i ++ ) {
+					for( var j = 0; j < 3; j++ ) {
+						vertexIndex = this.geometry.faces[i][ abc.charAt(j) ];
+						v = this.geometry.vertices[ vertexIndex ];
+						this.geometry.faces[ i ].vertexColors[ j ].setRGB( v.x*100, v.y100, v.z*100 );
+						this.geometry.verticesNeedUpdate = true;
+					}
+				}
+			};
 
 			// 0 = centroid, 1 = outerVertice
 			this.set = function( amount ) {
@@ -272,65 +314,98 @@
 				*/
 
 				// front
-				this.innerVertices.front[0].v.copy(this.centroids.front.clone().lerp( this.outerVertices.bottom[0], amount));
-				this.innerVertices.front[1].v.copy(this.centroids.front.clone().lerp( this.outerVertices.top[0], amount));
-				this.innerVertices.front[2].v.copy(this.centroids.front.clone().lerp( this.outerVertices.top[3], amount));
-				this.innerVertices.front[3].v.copy(this.centroids.front.clone().lerp( this.outerVertices.bottom[3], amount));
+				this.innerVertices.front[0].v.copy( this.centroids.front.clone().lerp( this.outerVertices.bottom[0], amount));
+				this.innerVertices.front[1].v.copy( this.centroids.front.clone().lerp( this.outerVertices.top[0], amount));
+				this.innerVertices.front[2].v.copy( this.centroids.front.clone().lerp( this.outerVertices.top[3], amount));
+				this.innerVertices.front[3].v.copy( this.centroids.front.clone().lerp( this.outerVertices.bottom[3], amount));
 				
 				// back
-				this.innerVertices.back[0].v.copy(this.centroids.back.clone().lerp( this.outerVertices.bottom[2], amount));
-				this.innerVertices.back[1].v.copy(this.centroids.back.clone().lerp( this.outerVertices.top[2], amount));
-				this.innerVertices.back[2].v.copy(this.centroids.back.clone().lerp( this.outerVertices.top[1], amount));
-				this.innerVertices.back[3].v.copy(this.centroids.back.clone().lerp( this.outerVertices.bottom[1], amount));
+				this.innerVertices.back[0].v.copy( this.centroids.back.clone().lerp( this.outerVertices.bottom[2], amount));
+				this.innerVertices.back[1].v.copy( this.centroids.back.clone().lerp( this.outerVertices.top[2], amount));
+				this.innerVertices.back[2].v.copy( this.centroids.back.clone().lerp( this.outerVertices.top[1], amount));
+				this.innerVertices.back[3].v.copy( this.centroids.back.clone().lerp( this.outerVertices.bottom[1], amount));
 
 				// left
-				this.innerVertices.left[0].v.copy(this.centroids.left.clone().lerp( this.outerVertices.bottom[1], amount));
-				this.innerVertices.left[1].v.copy(this.centroids.left.clone().lerp( this.outerVertices.top[1], amount));
-				this.innerVertices.left[2].v.copy(this.centroids.left.clone().lerp( this.outerVertices.top[0], amount));
-				this.innerVertices.left[3].v.copy(this.centroids.left.clone().lerp( this.outerVertices.bottom[0], amount));
+				this.innerVertices.left[0].v.copy( this.centroids.left.clone().lerp( this.outerVertices.bottom[1], amount));
+				this.innerVertices.left[1].v.copy( this.centroids.left.clone().lerp( this.outerVertices.top[1], amount));
+				this.innerVertices.left[2].v.copy( this.centroids.left.clone().lerp( this.outerVertices.top[0], amount));
+				this.innerVertices.left[3].v.copy( this.centroids.left.clone().lerp( this.outerVertices.bottom[0], amount));
 
 
-				// right
-				this.innerVertices.right[0].v.copy(this.centroids.right.clone().lerp( this.outerVertices.bottom[3], amount));
-				this.innerVertices.right[1].v.copy(this.centroids.right.clone().lerp( this.outerVertices.top[3], amount));
-				this.innerVertices.right[2].v.copy(this.centroids.right.clone().lerp( this.outerVertices.top[2], amount));
-				this.innerVertices.right[3].v.copy(this.centroids.right.clone().lerp( this.outerVertices.bottom[2], amount));
+				// right 
+				this.innerVertices.right[0].v.copy( this.centroids.right.clone().lerp( this.outerVertices.bottom[3], amount));
+				this.innerVertices.right[1].v.copy( this.centroids.right.clone().lerp( this.outerVertices.top[3], amount));
+				this.innerVertices.right[2].v.copy( this.centroids.right.clone().lerp( this.outerVertices.top[2], amount));
+				this.innerVertices.right[3].v.copy( this.centroids.right.clone().lerp( this.outerVertices.bottom[2], amount));
 
 				// top
-				this.innerVertices.top[0].v.copy(this.centroids.top.clone().lerp( this.outerVertices.top[0], amount));
-				this.innerVertices.top[1].v.copy(this.centroids.top.clone().lerp( this.outerVertices.top[1], amount));
-				this.innerVertices.top[2].v.copy(this.centroids.top.clone().lerp( this.outerVertices.top[2], amount));
-				this.innerVertices.top[3].v.copy(this.centroids.top.clone().lerp( this.outerVertices.top[3], amount));
+				this.innerVertices.top[0].v.copy( this.centroids.top.clone().lerp( this.outerVertices.top[0], amount) );
+				this.innerVertices.top[1].v.copy( this.centroids.top.clone().lerp( this.outerVertices.top[1], amount) );
+				this.innerVertices.top[2].v.copy( this.centroids.top.clone().lerp( this.outerVertices.top[2], amount) );
+				this.innerVertices.top[3].v.copy( this.centroids.top.clone().lerp( this.outerVertices.top[3], amount) );
 
 				// bottom
-				this.innerVertices.bottom[0].v.copy(this.centroids.bottom.clone().lerp( this.outerVertices.bottom[0], amount));
-				this.innerVertices.bottom[1].v.copy(this.centroids.bottom.clone().lerp( this.outerVertices.bottom[1], amount));
-				this.innerVertices.bottom[2].v.copy(this.centroids.bottom.clone().lerp( this.outerVertices.bottom[2], amount));
-				this.innerVertices.bottom[3].v.copy(this.centroids.bottom.clone().lerp( this.outerVertices.bottom[3], amount));
+				this.innerVertices.bottom[0].v.copy( this.centroids.bottom.clone().lerp( this.outerVertices.bottom[0], amount) );
+				this.innerVertices.bottom[1].v.copy( this.centroids.bottom.clone().lerp( this.outerVertices.bottom[1], amount) );
+				this.innerVertices.bottom[2].v.copy( this.centroids.bottom.clone().lerp( this.outerVertices.bottom[2], amount) );
+				this.innerVertices.bottom[3].v.copy( this.centroids.bottom.clone().lerp( this.outerVertices.bottom[3], amount) );
+
+
+
+				this.meshmaterial = this.material;
+
+				this.updateVertexColor();
 
 				this.geometry.verticesNeedUpdate = true;
-				this.geometrySmoothed = this.geometry.clone();
-				this.smooth();
+				this.geometry.colorsNeedUpdate = true
+				//this.geometry.mergeVertices();
+				this.geometry.computeFaceNormals();
+				this.geometry.computeVertexNormals();
+
+
+
+				//this.geometrySmoothed = this.geometry.clone();
 
 			};
 
 			this.generateMesh = function () {
 
-				this.wireframe = new THREE.MeshBasicMaterial({ 
-					wireframe: true
-				});
-				this.material = new THREE.MeshNormalMaterial();
+				var  materials = [
+					new THREE.MeshLambertMaterial( { color: 0xffffff, shading: THREE.FlatShading, vertexColors: THREE.VertexColors } ),
+					new THREE.MeshBasicMaterial( { color: 0x000000, shading: THREE.FlatShading, wireframe: true, transparent: true } )
+				];
 
-				this.mesh = new THREE.Mesh( this.geometry, this.wireframe);
+				this.mesh = new THREE.SceneUtils.createMultiMaterialObject( this.geometry, materials);
 
 			};
 
+			this.setWireframe = function() {
+
+				this.material = new THREE.MeshBasicMaterial({ 
+					wireframe: true, color: 0x000000
+				});
+				this.mesh.material = this.material;
+			}
+
+			this.setMaterial = function() {
+
+				this.material = new THREE.MeshLambertMaterial( { color: 0xffffff,  shading: THREE.FlatShading, vertexColors: THREE.VertexColors } );
+				this.mesh.material = this.material;
+			}
+
+
 
 			this.smooth = function () {
+				//this.geometrySmoothed = this.geometry.clone();
 				this.modifier = new THREE.SubdivisionModifier( 3 );
-				this.modifier.modify(this.geometrySmoothed);
-				this.geometrySmoothed.verticesNeedUpdate = true;
-				this.meshSmoothed = new THREE.Mesh( this.geometrySmoothed, this.wireframe);
+				this.modifier.modify(this.geometry);
+				this.geometry.colorsNeedUpdate = true
+				this.geometry.verticesNeedUpdate = true;
+				this.geometry.mergeVertices();
+				this.geometry.computeFaceNormals();
+				this.geometry.computeVertexNormals();
+
+				//this.meshSmoothed = new THREE.Mesh( this.geometrySmoothed, this.wireframe);
 
 			};
 		};
