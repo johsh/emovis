@@ -15,178 +15,228 @@
 		<script src="../../lib/jquery-2.1.1.min.js"></script>
 		<script>
 
+		var viz;
+
+		$( document )
+			.ready(
+				function() {
+
+				viz = new emoVIZ();
+				document.body.appendChild( viz.renderer.domElement );
+
+				// LIGHT
+				//var light = new THREE.AmbientLight( 0x404040 );
+				//scene.add(light);
+
+				//RENDER
+				function render() {
+					requestAnimationFrame( render ); 
+					viz.parametricCube.mesh.rotation.y += 0.01;
+					viz.parametricCube.mesh.rotation.z += 0.01;
+					viz.renderer.render(viz.scene, viz.camera); 
+				}
+
+				render();
+
+		});
+
+
+
+		var emoVIZ = function()
+		{
+
+
+			this.scene = new THREE.Scene();
+			this.camera = new THREE.PerspectiveCamera( 75, $(window).innerWidth() / $(window).innerHeight(), 0.1, 1000);
+			this.renderer = new THREE.WebGLRenderer();
+			this.renderer.setSize( $(window).innerWidth(), $(window).innerHeight() );
+
+			// ADD CUBE
+			var modifier = new THREE.SubdivisionModifier( 2 );
+
+			//var cube = new THREE.Mesh( geometry, material ); 
+			//scene.add( cube ); 
+			this.camera.position.z = 5;
+			this.parametricCube = new ParametricCube();
+			this.parametricCube.generateMesh();
+
+			this.directionalLight = new THREE.DirectionalLight( 0xffffff, 0.1 ); 
+			this.scene.add( this.parametricCube.mesh );
+			this.scene.add( this.directionalLight );
+
+			// parameters for our shape
+			this.parameters = {
+				  ratio :  0.0, scale : 0.0
+			};
+
+
+			this.gui = new dat.GUI();
+			this.ratio = this.gui.add(this.parameters, 'ratio', 0, 10);
+			this.scale = this.gui.add(this.parameters, 'scale', 0, 1);
+
+			self = this;
+
+			// this event updates the parametriccube
+			this.ratio.onChange(
+				function(value) {
+					console.log(self.parametricCube);
+					self.parametricCube.set(value);
+				}
+			);
+
+
+		};
+
+
+
 		var ParametricCube = function() {
 
-			this = {};
 			self = this;
+
 			this.geometry = new THREE.Geometry();
-
-			/* vertice-index seen from 'above'
-
-				1 2 
-				0 3
-
-			*/
 
 			this.outerVertices = {
 				bottom : [
-				// bottom
-				new THREE.Vector3(0,0,0),
-				new THREE.Vector3(0,0,1),
-				new THREE.Vector3(1,0,1),
-				new THREE.Vector3(1,0,0)], 
+					// bottom
+					new THREE.Vector3(0,0,0),
+					new THREE.Vector3(0,0,1),
+					new THREE.Vector3(1,0,1),
+					new THREE.Vector3(1,0,0)
+				], 
 				top : [
-				// top
-				new THREE.Vector3(0,1,0),
-				new THREE.Vector3(0,1,1),
-				new THREE.Vector3(1,1,1),
-				new THREE.Vector3(1,1,0)]
+					// top
+					new THREE.Vector3(0,1,0),
+					new THREE.Vector3(0,1,1),
+					new THREE.Vector3(1,1,1),
+					new THREE.Vector3(1,1,0)
+				]
 			};
 
 
 			this.centroids = {
-				front : THREE.Vector3(0.5,0.5,0),
-				back : THREE.Vector3(0.5,0.5,1),
-				left : THREE.Vector3(0,0.5,0.5),
-				right : THREE.Vector3(1,0.5,0.5),
-				top : THREE.Vector3(0.5,1,0.5),
-				bottom : THREE.Vector3(0.5,0,0.5)
+				front 	: new THREE.Vector3(0.5,0.5,0),
+				back 	: new THREE.Vector3(0.5,0.5,1),
+				left 	: new THREE.Vector3(0,0.5,0.5),
+				right 	: new THREE.Vector3(1,0.5,0.5),
+				top 	: new THREE.Vector3(0.5,1,0.5),
+				bottom 	: new THREE.Vector3(0.5,0,0.5)
 			};
+
+			this.innerVertices = { front : [],  back : [],  left : [],  right : [],  top : [],  bottom : [] };
+
+			this.innerVertices.front.push( { v : this.centroids.front.clone(), id : 0 } ); 							     this.geometry.vertices.push( this.innerVertices.front[0].v ); 
+			this.innerVertices.front.push( { v : this.centroids.front.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.front[1].v ); 
+			this.innerVertices.front.push( { v : this.centroids.front.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.front[2].v ); 
+			this.innerVertices.front.push( { v : this.centroids.front.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.front[3].v ); 
+
+			this.innerVertices.back.push( {v : this.centroids.back.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.back[0].v );
+			this.innerVertices.back.push( {v : this.centroids.back.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.back[1].v );
+			this.innerVertices.back.push( {v : this.centroids.back.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.back[2].v );
+			this.innerVertices.back.push( {v : this.centroids.back.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.back[3].v );
+
+			this.innerVertices.left.push( {v : this.centroids.left.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.left[0].v );
+			this.innerVertices.left.push( {v : this.centroids.left.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.left[1].v );
+			this.innerVertices.left.push( {v : this.centroids.left.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.left[2].v );
+			this.innerVertices.left.push( {v : this.centroids.left.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.left[3].v );
+
+			this.innerVertices.right.push( {v : this.centroids.right.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.right[0].v );
+			this.innerVertices.right.push( {v : this.centroids.right.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.right[1].v );
+			this.innerVertices.right.push( {v : this.centroids.right.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.right[2].v );
+			this.innerVertices.right.push( {v : this.centroids.right.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.right[3].v );
+
+			this.innerVertices.top.push( {v : this.centroids.top.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.top[0].v );
+			this.innerVertices.top.push( {v : this.centroids.top.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.top[1].v );
+			this.innerVertices.top.push( {v : this.centroids.top.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.top[2].v );
+			this.innerVertices.top.push( {v : this.centroids.top.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.top[3].v );
+
+			this.innerVertices.bottom.push( {v : this.centroids.bottom.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.bottom[0].v );
+			this.innerVertices.bottom.push( {v : this.centroids.bottom.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.bottom[1].v );
+			this.innerVertices.bottom.push( {v : this.centroids.bottom.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.bottom[2].v );
+			this.innerVertices.bottom.push( {v : this.centroids.bottom.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.bottom[3].v );
+
+
+			this.geometry.faces.push( new THREE.Face3( this.innerVertices.front[0].id, this.innerVertices.front[1].id, this.innerVertices.front[2].id) );
+			this.geometry.faces.push( new THREE.Face3( this.innerVertices.front[2].id, this.innerVertices.front[3].id, this.innerVertices.front[0].id) );
+
+			this.geometry.faces.push( new THREE.Face3( this.innerVertices.back[0].id, this.innerVertices.back[1].id, this.innerVertices.back[2].id) );
+			this.geometry.faces.push( new THREE.Face3( this.innerVertices.back[2].id, this.innerVertices.back[3].id, this.innerVertices.back[0].id) );
+
+			this.geometry.faces.push( new THREE.Face3( this.innerVertices.top[0].id, this.innerVertices.top[1].id, this.innerVertices.top[2].id) );
+			this.geometry.faces.push( new THREE.Face3( this.innerVertices.top[2].id, this.innerVertices.top[3].id, this.innerVertices.top[0].id) );
+
+			this.geometry.faces.push( new THREE.Face3( this.innerVertices.bottom[0].id, this.innerVertices.bottom[1].id, this.innerVertices.bottom[2].id) );
+			this.geometry.faces.push( new THREE.Face3( this.innerVertices.bottom[2].id, this.innerVertices.bottom[3].id, this.innerVertices.bottom[0].id) );
+
+			this.geometry.faces.push( new THREE.Face3( this.innerVertices.left[0].id, this.innerVertices.left[1].id, this.innerVertices.left[2].id) );
+			this.geometry.faces.push( new THREE.Face3( this.innerVertices.left[2].id, this.innerVertices.left[3].id, this.innerVertices.left[0].id) );
+
+			this.geometry.faces.push( new THREE.Face3( this.innerVertices.right[0].id, this.innerVertices.right[1].id, this.innerVertices.right[2].id) );
+			this.geometry.faces.push( new THREE.Face3( this.innerVertices.right[2].id, this.innerVertices.right[3].id, this.innerVertices.right[0].id) );
+
+
 
 			// 0 = centroid, 1 = outerVertice
-			this.set = function(amount) {
-				this.innerVertices = {
-					front :
-					[ 
-						{ v : this.geometry.vertices.push(this.centroids.front.copy().lerp( this.outerVertices.bottom[0], amount), id: this.geometry.vertices.length-1},
-						{ v : this.geometry.vertices.push(this.centroids.front.copy().lerp( this.outerVertices.top[0], amount), id: this.geometry.vertices.length-1},
-						{ v : this.geometry.vertices.push(this.centroids.front.copy().lerp( this.outerVertices.top[3], amount), id: this.geometry.vertices.length-1},
-						{ v : this.geometry.vertices.push(this.centroids.front.copy().lerp( this.outerVertices.bottom[3], amount), id: this.geometry.vertices.length-1}
-					],
-					back :
-					[ 
-						{ v : this.geometry.vertices.push(this.centroids.back.copy().lerp( this.outerVertices.bottom[2], amount), id: this.geometry.vertices.length-1},
-						{ v : this.geometry.vertices.push(this.centroids.back.copy().lerp( this.outerVertices.top[2], amount), id: this.geometry.vertices.length-1},
-						{ v : this.geometry.vertices.push(this.centroids.back.copy().lerp( this.outerVertices.top[1], amount), id: this.geometry.vertices.length-1},
-						{ v : this.geometry.vertices.push(this.centroids.back.copy().lerp( this.outerVertices.bottom[1], amount), id: this.geometry.vertices.length-1}
-					],
-					left :
-					[
-						{ v : this.geometry.vertices.push(this.centroids.left.copy().lerp( this.outerVertices.bottom[1], amount), id: this.geometry.vertices.length-1},
-						{ v : this.geometry.vertices.push(this.centroids.left.copy().lerp( this.outerVertices.top[1], amount), id: this.geometry.vertices.length-1},
-						{ v : this.geometry.vertices.push(this.centroids.left.copy().lerp( this.outerVertices.top[0], amount), id: this.geometry.vertices.length-1},
-						{ v : this.geometry.vertices.push(this.centroids.left.copy().lerp( this.outerVertices.bottom[0], amount), id: this.geometry.vertices.length-1}
-					],
-					right :
-					[ 
-						{ v : this.geometry.vertices.push(this.centroids.right.copy().lerp( this.outerVertices.bottom[3], amount), id: this.geometry.vertices.length-1},
-						{ v : this.geometry.vertices.push(this.centroids.right.copy().lerp( this.outerVertices.top[3], amount), id: this.geometry.vertices.length-1},
-						{ v : this.geometry.vertices.push(this.centroids.right.copy().lerp( this.outerVertices.top[2], amount), id: this.geometry.vertices.length-1},
-						{ v : this.geometry.vertices.push(this.centroids.right.copy().lerp( this.outerVertices.bottom[2], amount), id: this.geometry.vertices.length-1}
-					],
-					top :
-					[ 
-						{ v : this.geometry.vertices.push(this.centroids.top.copy().lerp( this.outerVertices.top[0], amount), id: this.geometry.vertices.length-1},
-						{ v : this.geometry.vertices.push(this.centroids.top.copy().lerp( this.outerVertices.top[1], amount), id: this.geometry.vertices.length-1},
-						{ v : this.geometry.vertices.push(this.centroids.top.copy().lerp( this.outerVertices.top[2], amount), id: this.geometry.vertices.length-1},
-						{ v : this.geometry.vertices.push(this.centroids.top.copy().lerp( this.outerVertices.top[3], amount), id: this.geometry.vertices.length-1}
-					],
-					bottom :
-					[ 
-						{ v : this.geometry.vertices.push(this.centroids.bottom.copy().lerp( this.outerVertices.bottom[0]), id: this.geometry.vertices.length-1},
-						{ v : this.geometry.vertices.push(this.centroids.bottom.copy().lerp( this.outerVertices.bottom[1]), id: this.geometry.vertices.length-1},
-						{ v : this.geometry.vertices.push(this.centroids.bottom.copy().lerp( this.outerVertices.bottom[2]), id: this.geometry.vertices.length-1},
-						{ v : this.geometry.vertices.push(this.centroids.bottom.copy().lerp( this.outerVertices.bottom[3]), id: this.geometry.vertices.length-1}
-					]
-				};
+			this.set = function( amount ) {
 
-				this.geometry.faces.push(new THREE.Face(this.innerVertices.bottom[0].id, this.innerVertices.bottom[1].id, this.innerVertices.bottom[2].id));
-				this.geometry.faces.push(new THREE.Face(this.innerVertices.bottom[2].id, this.innerVertices.bottom[3].id, this.innerVertices.bottom[0].id));
+				/* 
+				vertice-index as seen from orthogonal 'above'
+					1----2
+					| \  |
+					|  \ |
+					0----3
+				*/
 
-				this.geometry.geom.computeFaceNormals();
+				// front
+				console.log(this.innerVertices.front[0].v);
+				this.innerVertices.front[0].v.copy(this.centroids.front.clone().lerp( this.outerVertices.bottom[0], amount));
+				this.innerVertices.front[1].v.copy(this.centroids.front.clone().lerp( this.outerVertices.top[0], amount));
+				this.innerVertices.front[2].v.copy(this.centroids.front.clone().lerp( this.outerVertices.top[3], amount));
+				this.innerVertices.front[3].v.copy(this.centroids.front.clone().lerp( this.outerVertices.bottom[3], amount));
+				
+				// back
+				this.innerVertices.back[0].v.copy(this.centroids.back.clone().lerp( this.outerVertices.bottom[2], amount));
+				this.innerVertices.back[1].v.copy(this.centroids.back.clone().lerp( this.outerVertices.top[2], amount));
+				this.innerVertices.back[2].v.copy(this.centroids.back.clone().lerp( this.outerVertices.top[1], amount));
+				this.innerVertices.back[3].v.copy(this.centroids.back.clone().lerp( this.outerVertices.bottom[1], amount));
+
+				// left
+				this.innerVertices.left[0].v.copy(this.centroids.left.clone().lerp( this.outerVertices.bottom[1], amount));
+				this.innerVertices.left[1].v.copy(this.centroids.left.clone().lerp( this.outerVertices.top[1], amount));
+				this.innerVertices.left[2].v.copy(this.centroids.left.clone().lerp( this.outerVertices.top[0], amount));
+				this.innerVertices.left[3].v.copy(this.centroids.left.clone().lerp( this.outerVertices.bottom[0], amount));
+
+
+				// right
+				this.innerVertices.right[0].v.copy(this.centroids.right.clone().lerp( this.outerVertices.bottom[3], amount));
+				this.innerVertices.right[1].v.copy(this.centroids.right.clone().lerp( this.outerVertices.top[3], amount));
+				this.innerVertices.right[2].v.copy(this.centroids.right.clone().lerp( this.outerVertices.top[2], amount));
+				this.innerVertices.right[3].v.copy(this.centroids.right.clone().lerp( this.outerVertices.bottom[2], amount));
+
+				// top
+				this.innerVertices.top[0].v.copy(this.centroids.top.clone().lerp( this.outerVertices.top[0], amount));
+				this.innerVertices.top[1].v.copy(this.centroids.top.clone().lerp( this.outerVertices.top[1], amount));
+				this.innerVertices.top[2].v.copy(this.centroids.top.clone().lerp( this.outerVertices.top[2], amount));
+				this.innerVertices.top[3].v.copy(this.centroids.top.clone().lerp( this.outerVertices.top[3], amount));
+
+				// bottom
+				this.innerVertices.bottom[0].v.copy(this.centroids.bottom.clone().lerp( this.outerVertices.bottom[0], amount));
+				this.innerVertices.bottom[1].v.copy(this.centroids.bottom.clone().lerp( this.outerVertices.bottom[1], amount));
+				this.innerVertices.bottom[2].v.copy(this.centroids.bottom.clone().lerp( this.outerVertices.bottom[2], amount));
+				this.innerVertices.bottom[3].v.copy(this.centroids.bottom.clone().lerp( this.outerVertices.bottom[3], amount));
+
+				this.geometry.verticesNeedUpdate = true;
 
 			};
 
-	};
+			this.generateMesh = function () {
 
-			/*
+				this.material = new THREE.MeshBasicMaterial({ 
+					wireframe: true
+				});
 
-			var FizzyText = function() {
-			  this.message = 'dat.gui';
-			  this.speed = 0.8;
-			  this.displayOutline = false;
-			  this.explode = function() { ... };
-			  // Define render logic ...
+				this.mesh = new THREE.Mesh( this.geometry, this.material);
 			};
-
-			window.onload = function() {
-			  var text = new FizzyText();
-			  var gui = new dat.GUI();
-			  gui.add(text, 'message');
-			  gui.add(text, 'speed', -5, 5);
-			  gui.add(text, 'displayOutline');
-			  gui.add(text, 'explode');
-			};
-
-			*/
-
-			// SOURCE
-			// http://threejs.org/docs/index.html#Manual/Introduction/Creating_a_scene
-
-			// SET UP SCENE
-
-
-			var scene = new THREE.Scene();
-			var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000);
-			var renderer = new THREE.WebGLRenderer();
-			renderer.setSize( $(window).innerWidth(), $(window).innerHeight() );
-			document.body.appendChild( renderer.domElement );
-
-			var pc = new ParametricCube();
-			pc.set(0.5);
-
-			// LIGHT
-			//var light = new THREE.AmbientLight( 0x404040 );
-			//scene.add(light);
-
-
-			var directionalLight = new THREE.DirectionalLight( 0xffffff, 0.1 ); 
-			directionalLight.position.set( 0, 1, 0 ); 
-			scene.add( directionalLight );
-
-			// ADD CUBE
-			var geometry = new THREE.BoxGeometry(1,1,1); 
-
-			var material = new THREE.MeshBasicMaterial( { 
-				color: 0x00ff00,
-				wireframe: true,
-				vertexColors: 0x00ffff,
-			} );
-
-			var modifier = new THREE.SubdivisionModifier( 2 );
-			modifier.modify(geom);
-
-			var object = new THREE.Mesh( geom, material );
-
-			scene.add(object);
-
-			//var cube = new THREE.Mesh( geometry, material ); 
-			//scene.add( cube ); 
-			camera.position.z = 5;
-
-
-			var cube = new THREE.Mesh( geometry, material ); 
-			//scene.add( cube ); 
-
-
-			//RENDER
-			function render() { requestAnimationFrame(render); 
-				object.rotation.x += 0.01; 
-				object.rotation.y += 0.01;
-				renderer.render(scene, camera); 
-			}
-
-			render();
+		};
 		</script>
 	</body>
 </html>
