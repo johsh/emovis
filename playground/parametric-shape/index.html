@@ -61,7 +61,7 @@
 			this.pointLight.position.set(0, 1, 1);
 
 			//scene.add( cube ); 
-			this.camera.position.set(0, 10, 0);
+			this.camera.position.set(0, 0, 10);
 			this.parametricCube = new ParametricCube();
 			this.parametricCube.generateMesh();
 
@@ -109,8 +109,9 @@
 
 			self = this;
 
-			this.geometry = new THREE.Geometry();
+			this.geometry = { smoothed : new THREE.Geometry(), original: new THREE.Geometry() }
 			this.geometrySmoothed = new THREE.Geometry();
+			this.mesh = {smoothed:{}, original : {} };
 
 				/*  vertice-index as seen from orthogonal 'above' of top, 
 
@@ -169,6 +170,7 @@
 			this.innerVertices = { front : [],  back : [],  left : [],  right : [],  top : [],  bottom : [] };
 
 			this.innerVertices.front.push( { v : this.centroids.front.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.front[0].v ); 
+
 			this.innerVertices.front.push( { v : this.centroids.front.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.front[1].v ); 
 			this.innerVertices.front.push( { v : this.centroids.front.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.front[2].v ); 
 			this.innerVertices.front.push( { v : this.centroids.front.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.front[3].v ); 
@@ -200,7 +202,7 @@
 
 
 
-			this.geometry.faces.push( new THREE.Face3( this.innerVertices.front[0].id, this.innerVertices.front[1].id, this.innerVertices.front[2].id) );
+			/*this.geometry.faces.push( new THREE.Face3( this.innerVertices.front[0].id, this.innerVertices.front[1].id, this.innerVertices.front[2].id) );
 			this.geometry.faces.push( new THREE.Face3( this.innerVertices.front[2].id, this.innerVertices.front[3].id, this.innerVertices.front[0].id) );
 
 			this.geometry.faces.push( new THREE.Face3( 4, this.innerVertices.front[1].id, this.innerVertices.front[0].id) );
@@ -212,9 +214,10 @@
 			this.geometry.faces.push( new THREE.Face3( 7, this.innerVertices.front[0].id, this.innerVertices.front[3].id) );
 			this.geometry.faces.push( new THREE.Face3( 7, 4, this.innerVertices.front[0].id) );
 
-
+*/
 			this.geometry.faces.push( new THREE.Face3( this.innerVertices.back[0].id, this.innerVertices.back[1].id, this.innerVertices.back[2].id) );
 			this.geometry.faces.push( new THREE.Face3( this.innerVertices.back[2].id, this.innerVertices.back[3].id, this.innerVertices.back[0].id) );
+
 
 			this.geometry.faces.push( new THREE.Face3( 6, this.innerVertices.back[1].id, this.innerVertices.back[0].id) );
 			this.geometry.faces.push( new THREE.Face3( 6, 2, this.innerVertices.back[1].id) );
@@ -225,7 +228,7 @@
 			this.geometry.faces.push( new THREE.Face3( 5, this.innerVertices.back[0].id, this.innerVertices.back[3].id) );
 			this.geometry.faces.push( new THREE.Face3( 5, 6, this.innerVertices.back[0].id) );
 
-
+/*
 			this.geometry.faces.push( new THREE.Face3( this.innerVertices.top[0].id, this.innerVertices.top[1].id, this.innerVertices.top[2].id) );
 			this.geometry.faces.push( new THREE.Face3( this.innerVertices.top[2].id, this.innerVertices.top[3].id, this.innerVertices.top[0].id) );
 
@@ -240,20 +243,23 @@
 
 
 
-			this.geometry.faces.push( new THREE.Face3( this.innerVertices.bottom[0].id, this.innerVertices.bottom[1].id, this.innerVertices.bottom[2].id) );
-			this.geometry.faces.push( new THREE.Face3( this.innerVertices.bottom[2].id, this.innerVertices.bottom[3].id, this.innerVertices.bottom[0].id) );
+			this.geometry.faces.push( new THREE.Face3( this.innerVertices.bottom[0].id, this.innerVertices.bottom[2].id, this.innerVertices.bottom[1].id) );
+			this.geometry.faces.push( new THREE.Face3( this.innerVertices.bottom[3].id, this.innerVertices.bottom[2].id, this.innerVertices.bottom[0].id) );
 
-			this.geometry.faces.push( new THREE.Face3( 4, this.innerVertices.bottom[1].id, this.innerVertices.bottom[0].id) );
-			this.geometry.faces.push( new THREE.Face3( 4, 5, this.innerVertices.bottom[1].id) );
-			this.geometry.faces.push( new THREE.Face3( 5, this.innerVertices.bottom[2].id, this.innerVertices.bottom[1].id) );
-			this.geometry.faces.push( new THREE.Face3( 5, 6, this.innerVertices.bottom[2].id) );
-			this.geometry.faces.push( new THREE.Face3( 6, this.innerVertices.bottom[3].id, this.innerVertices.bottom[2].id) );
-			this.geometry.faces.push( new THREE.Face3( 6, 7, this.innerVertices.bottom[3].id) );
-			this.geometry.faces.push( new THREE.Face3( 7, this.innerVertices.bottom[0].id, this.innerVertices.bottom[3].id) );
-			this.geometry.faces.push( new THREE.Face3( 7, 4, this.innerVertices.bottom[0].id) );
+			//BOTTOM
+			this.geometry.faces.push( new THREE.Face3( 7, this.innerVertices.bottom[2].id, this.innerVertices.bottom[3].id) );
+			this.geometry.faces.push( new THREE.Face3( 7, 6, this.innerVertices.bottom[2].id) );
+			this.geometry.faces.push( new THREE.Face3( 6, this.innerVertices.bottom[1].id, this.innerVertices.bottom[2].id) );
+			this.geometry.faces.push( new THREE.Face3( 6, 5, this.innerVertices.bottom[1].id) );
+			this.geometry.faces.push( new THREE.Face3( 5, this.innerVertices.bottom[0].id, this.innerVertices.bottom[1].id) );
+			this.geometry.faces.push( new THREE.Face3( 5, 4, this.innerVertices.bottom[0].id) );
+			this.geometry.faces.push( new THREE.Face3( 4, this.innerVertices.bottom[3].id, this.innerVertices.bottom[0].id) );
+			this.geometry.faces.push( new THREE.Face3( 4, 7, this.innerVertices.bottom[3].id) );
+
+			*/
 
 
-			this.geometry.faces.push( new THREE.Face3( this.innerVertices.left[0].id, this.innerVertices.left[1].id, this.innerVertices.left[2].id) );
+/*			this.geometry.faces.push( new THREE.Face3( this.innerVertices.left[0].id, this.innerVertices.left[1].id, this.innerVertices.left[2].id) );
 			this.geometry.faces.push( new THREE.Face3( this.innerVertices.left[2].id, this.innerVertices.left[3].id, this.innerVertices.left[0].id) );
 
 			this.geometry.faces.push( new THREE.Face3( 5, this.innerVertices.left[1].id, this.innerVertices.left[0].id) );
@@ -276,7 +282,7 @@
 			this.geometry.faces.push( new THREE.Face3( 2, 6, this.innerVertices.right[3].id) );
 			this.geometry.faces.push( new THREE.Face3( 6, this.innerVertices.right[0].id, this.innerVertices.right[3].id) );
 			this.geometry.faces.push( new THREE.Face3( 6, 7, this.innerVertices.right[0].id) );
-
+*/
 
 			for ( var i = 0; i < this.geometry.faces.length; i ++ ) {
 				var f  = this.geometry.faces[ i ];
@@ -358,9 +364,13 @@
 
 				this.geometry.verticesNeedUpdate = true;
 				this.geometry.colorsNeedUpdate = true
+
+
+				this.mesh.smoothed = new THREE.SceneUtils.createMultiMaterialObject( this.geometry, materials);
+
 				//this.geometry.mergeVertices();
-				this.geometry.computeFaceNormals();
-				this.geometry.computeVertexNormals();
+				//this.geometry.computeFaceNormals();
+				//this.geometry.computeVertexNormals();
 
 
 
@@ -371,7 +381,7 @@
 			this.generateMesh = function () {
 
 				var  materials = [
-					new THREE.MeshLambertMaterial( { color: 0xffffff, shading: THREE.FlatShading, vertexColors: THREE.VertexColors } ),
+					//new THREE.MeshLambertMaterial( { color: 0xffffff, shading: THREE.FlatShading, vertexColors: THREE.VertexColors } ),
 					new THREE.MeshBasicMaterial( { color: 0x000000, shading: THREE.FlatShading, wireframe: true, transparent: true } )
 				];
 
@@ -397,13 +407,13 @@
 
 			this.smooth = function () {
 				//this.geometrySmoothed = this.geometry.clone();
-				this.modifier = new THREE.SubdivisionModifier( 3 );
+				this.modifier = new THREE.SubdivisionModifier( 1 );
 				this.modifier.modify(this.geometry);
-				this.geometry.colorsNeedUpdate = true
+				//this.geometry.colorsNeedUpdate = true
 				this.geometry.verticesNeedUpdate = true;
-				this.geometry.mergeVertices();
-				this.geometry.computeFaceNormals();
-				this.geometry.computeVertexNormals();
+				//this.geometry.mergeVertices();
+				//this.geometry.computeFaceNormals();
+				//this.geometry.computeVertexNormals();
 
 				//this.meshSmoothed = new THREE.Mesh( this.geometrySmoothed, this.wireframe);
 
