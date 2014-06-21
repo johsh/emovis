@@ -50,7 +50,7 @@
 			tmp.vertices.push(new THREE.Vector3(0,1,0));
 			tmp.faces.push(new THREE.Face3(0,1,2));
 
-			var triangle = new THREE.Mesh(getFlexibleEdges(tmp), material);
+			var triangle = new THREE.Mesh(getFlexibleEdges(tmp), wire);
 			objects.push(triangle);
 
 			//ADD CUBE
@@ -58,7 +58,7 @@
 			objects.push(cube);	
 
 			//TETRAHEDRON
-			var tetra = new THREE.Mesh(new THREE.TetrahedronGeometry(size), wire)
+			var tetra = new THREE.Mesh(getFlexibleEdges(new THREE.TetrahedronGeometry(size)), wire)
 			objects.push(tetra);
 
 			//SPHERE
@@ -165,7 +165,7 @@
 			}
 
 			//TEST
-			//	SmoothGeometry(tetra, .5);
+			smoothGeometry(tetra, .5);
 
 			//THIS FUNCTION PUTS DOUBLED CORNER POINTS TOWARDS THE CENTER
 			function smoothGeometry(obj, roundness){
@@ -199,9 +199,9 @@
 
 
 			/* HERE THE subdivision MAGIC HAPPENS */
-			smoothGeometry(triangle, .2);
+			//smoothGeometry(triangle, .2);
 			var modifier = new THREE.SubdivisionModifier( 1 );
-			//modifier.modify(triangle.geometry);
+			modifier.modify(triangle.geometry);
 
 
 			//var cube = new THREE.Mesh( geometry, material ); 

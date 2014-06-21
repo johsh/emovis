@@ -103,13 +103,140 @@
 
 		};
 
-
-
 		var ParametricCube = function() {
+			//self = this;
+			//this.geometry = new THREE.BoxGeometry(1,1,1);
+
+
+			this.getInnerGeometry = function(geometry){
+
+				//this will be a list [{vertex: vertex.id, center: center}, ... ]				
+				var tmp = new THREE.Geometry();
+				tmp.inner = [];
+
+				geometry.faces.forEach(function(face,i){
+					if (i < 2);
+
+					//CURRENT FACE a, b, c
+					var a = face.a;
+					var b = face.b;
+					var c = face.c;
+
+					//GET CENTER
+					var center = new THREE.Vector3();
+					center.add(geometry.vertices[a]);
+					center.add(geometry.vertices[b]);
+					center.add(geometry.vertices[c]);
+					center.divideScalar(3);
+
+					//COPY OLD VERTICES TO TEMPGEOMETRY
+					tmp.vertices.push(geometry.vertices[a].clone());
+					tmp.vertices.push(geometry.vertices[b].clone());
+					tmp.vertices.push(geometry.vertices[c].clone());
+
+					//COPY NEW VERTICES TO TEMPGEOMETRY
+					tmp.vertices.push(geometry.vertices[a]);
+					tmp.vertices.push(geometry.vertices[b]);
+					tmp.vertices.push(geometry.vertices[c]);
+
+					//STORE INNERVERTICES
+					tmp.inner.push({vertex: geometry.vertices[a], center: center});
+					var a1 = tmp.inner.length-1;
+					tmp.inner.push({vertex: geometry.vertices[b].clone(), center: center});
+					var b1 = tmp.inner.length-1;
+					tmp.inner.push({vertex: geometry.vertices[c].clone(), center: center});
+					var c1 = tmp.inner.length-1;
+
+						//BUILT NEW FACES
+						/*
+							     a 		new faces:
+							     /\			a, c, a1	and origin-face 
+							    /a1\		a, b1, b 		a, b, c
+							   / /\ \		b, c1, c 	becomes
+							  / /  \ \		a, a1,b1 		a1, b1, c1
+							 / b1--c1 \		b, b1, c1
+							b----------c 	c, c1, a1
+						*/
+
+					tmp.faces.push(new THREE.Face3(a, c, a1));
+					tmp.faces.push(new THREE.Face3(a, b1, b));
+					tmp.faces.push(new THREE.Face3(b, c1, c));
+
+					tmp.faces.push(new THREE.Face3(a, a1, b1));
+					tmp.faces.push(new THREE.Face3(b, b1, c1));
+					tmp.faces.push(new THREE.Face3(c, c1, a1));
+
+					tmp.faces.push(new THREE.Face3(a1, b1, c1));
+				});
+
+				return tmp;
+			}
+
+			this.set = function( amount ) {
+
+				this.geometry.inner.forEach(function(inner){
+					inner.vertex.copy( inner.center.lerp(inner.vertex, amount));
+				});
+
+				//this.generateMesh();
+				//this.meshmaterial = this.material;
+				//this.updateVertexColor();
+
+				this.geometry.verticesNeedUpdate = true;
+				this.geometry.colorsNeedUpdate = true
+			};
+
+			this.generateMesh = function () {
+
+				var  materials = [
+					//new THREE.MeshLambertMaterial( { color: 0xffffff, shading: THREE.FlatShading, vertexColors: THREE.VertexColors } ),
+					new THREE.MeshBasicMaterial( { color: 0x000000, shading: THREE.FlatShading, wireframe: true, transparent: true } )
+				];
+
+				this.mesh = new THREE.SceneUtils.createMultiMaterialObject( this.geometry, materials);
+
+			};
+
+			this.setWireframe = function() {
+
+				this.material = new THREE.MeshBasicMaterial({ 
+					wireframe: true, color: 0x000000
+				});
+				this.mesh.material = this.material;
+			}
+
+			this.setMaterial = function() {
+
+				this.material = new THREE.MeshLambertMaterial( { color: 0xffffff,  shading: THREE.FlatShading, vertexColors: THREE.VertexColors } );
+				this.mesh.material = this.material;
+			}
+
+
+
+			this.smooth = function () {
+				//this.geometrySmoothed = this.geometry.clone();
+				this.modifier = new THREE.SubdivisionModifier( 1 );
+				this.modifier.modify(this.geometry);
+				//this.geometry.colorsNeedUpdate = true
+				this.geometry.verticesNeedUpdate = true;
+				//this.geometry.mergeVertices();
+				//this.geometry.computeFaceNormals();
+				//this.geometry.computeVertexNormals();
+
+				//this.meshSmoothed = new THREE.Mesh( this.geometrySmoothed, this.wireframe);
+
+			};
+
+			this.geometry = this.getInnerGeometry(new THREE.BoxGeometry(1,1,1));
+		}
+
+
+
+		var ParametricCube_OLD = function() {
 
 			self = this;
 
-			this.geometry = { smoothed : new THREE.Geometry(), original: new THREE.Geometry() }
+			this.geometry = new THREE.Geometry();//{ smoothed : new THREE.Geometry(), original: new THREE.Geometry() }
 			this.geometrySmoothed = new THREE.Geometry();
 			this.mesh = {smoothed:{}, original : {} };
 
@@ -302,7 +429,7 @@
 					for( var j = 0; j < 3; j++ ) {
 						vertexIndex = this.geometry.faces[i][ abc.charAt(j) ];
 						v = this.geometry.vertices[ vertexIndex ];
-						this.geometry.faces[ i ].vertexColors[ j ].setRGB( v.x*100, v.y100, v.z*100 );
+						//this.geometry.faces[ i ].vertexColors[ j ].setRGB( v.x*100, v.y100, v.z*100 );
 						this.geometry.verticesNeedUpdate = true;
 					}
 				}
@@ -356,7 +483,9 @@
 				this.innerVertices.bottom[2].v.copy( this.centroids.bottom.clone().lerp( this.outerVertices.bottom[2], amount) );
 				this.innerVertices.bottom[3].v.copy( this.centroids.bottom.clone().lerp( this.outerVertices.bottom[3], amount) );
 
-
+				console.log(this);
+				this.generateMesh();
+				//this.mesh = null;//new THREE.Mesh(this.geometry, this.material);
 
 				this.meshmaterial = this.material;
 
@@ -366,7 +495,8 @@
 				this.geometry.colorsNeedUpdate = true
 
 
-				this.mesh.smoothed = new THREE.SceneUtils.createMultiMaterialObject( this.geometry, materials);
+				//this.mesh.smoothed = new THREE.SceneUtils.createMultiMaterialObject( this.geometry, this.material);
+
 
 				//this.geometry.mergeVertices();
 				//this.geometry.computeFaceNormals();
