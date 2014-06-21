@@ -53,10 +53,6 @@
 			var triangle = new THREE.Mesh(getFlexibleEdges(tmp), wire);
 			objects.push(triangle);
 
-			//ADD CUBE
-			var cube = new THREE.Mesh(new THREE.BoxGeometry(size,size,size), material); 
-			objects.push(cube);	
-
 			//TETRAHEDRON
 			var tetra = new THREE.Mesh(getFlexibleEdges(new THREE.TetrahedronGeometry(size)), wire)
 			objects.push(tetra);
@@ -76,6 +72,10 @@
 			}
 			var poly = new THREE.Mesh(QuickHull(geom), material);
 			objects.push(poly);
+
+			//ADD CUBE
+			var cube = new THREE.Mesh(new THREE.BoxGeometry(size,size,size), material); 
+			objects.push(cube);	
 			
 			//EDGINESS
 			function getFlexibleEdges(geometry){
@@ -200,8 +200,18 @@
 
 			/* HERE THE subdivision MAGIC HAPPENS */
 			//smoothGeometry(triangle, .2);
-			var modifier = new THREE.SubdivisionModifier( 1 );
-			modifier.modify(triangle.geometry);
+			function doo(){
+				scene.remove(cube);
+
+				var tmp = new THREE.Geometry();
+				tmp.vertices = cube.geometry.vertices;
+				tmp.faces = cube.geometry.faces;
+
+				var modifier = new THREE.SubdivisionModifier( 2 );
+				modifier.modify(tmp);
+
+				scene.add(new THREE.Mesh( tmp, material ));
+			}
 
 
 			//var cube = new THREE.Mesh( geometry, material ); 
@@ -218,6 +228,7 @@
 			}
 
 			render();
+			doo();			
 		</script>
 	</body>
 </html>

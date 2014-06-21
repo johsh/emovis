@@ -51,7 +51,7 @@
 			this.scene = new THREE.Scene();
 			this.camera = new THREE.PerspectiveCamera( 75, $(window).innerWidth() / $(window).innerHeight(), 0.1, 1000);
 			this.controls = new THREE.OrbitControls( this.camera );
-			this.renderer = new THREE.WebGLRenderer();
+			this.renderer = new THREE.WebGLRenderer( { antialias: true } );
 			this.renderer.setSize( $(window).innerWidth(), $(window).innerHeight() );
 			this.renderer.setClearColor( 0xffffff, 1 );
 
@@ -60,7 +60,6 @@
 			this.scene.add( this.pointLight );
 			this.pointLight.position.set(0, 1, 1);
 
-			//scene.add( cube ); 
 			this.camera.position.set(0, 0, 10);
 			this.parametricCube = new ParametricCube();
 			this.parametricCube.generateMesh();
@@ -112,47 +111,44 @@
 
 				//this will be a list [{vertex: vertex.id, center: center}, ... ]				
 				var tmp = new THREE.Geometry();
+				tmp.vertices = geometry.vertices;
+				//tmp.faces = geometry.faces;
 				tmp.inner = [];
 
-				geometry.faces.forEach(function(face,i){
-					//if (i > 4) return;
+				var len = 10;//geometry.faces.length;
+
+				for (var i=0;i<len;i++){
+					var face = geometry.faces[i];
 
 					//CURRENT FACE a, b, c
-					var _a = face.a;
-					var _b = face.b;
-					var _c = face.c;
+					var a = face.a;
+					var b = face.b;
+					var c = face.c;
 
 					//GET CENTER
 					var center = new THREE.Vector3();
-					center.add(geometry.vertices[_a]);
-					center.add(geometry.vertices[_b]);
-					center.add(geometry.vertices[_c]);
+					center.add(geometry.vertices[a]);
+					center.add(geometry.vertices[b]);
+					center.add(geometry.vertices[c]);
 					center.divideScalar(3);
-					console.log(center);
 
-					//OUTER VERTICES
-					var a = tmp.vertices.length;
-					tmp.vertices.push(geometry.vertices[_a]);
-					var b = tmp.vertices.length;
-					tmp.vertices.push(geometry.vertices[_b]);
-					var c = tmp.vertices.length;
-					tmp.vertices.push(geometry.vertices[_c]);
+					//OUTER VERTICES SHOULD ALREADY BE IN tmp
+					//tmp.vertices.push(geometry.vertices[a]);
+					//tmp.vertices.push(geometry.vertices[b]);
+					//tmp.vertices.push(geometry.vertices[c]);
 
 					//INNER VERTICES
 					var a1 = tmp.vertices.length;
-					tmp.vertices.push(geometry.vertices[_a].clone());
+					tmp.vertices.push(tmp.vertices[a].clone());
 					var b1 = tmp.vertices.length;
-					tmp.vertices.push(geometry.vertices[_b].clone());
+					tmp.vertices.push(tmp.vertices[b].clone());
 					var c1 = tmp.vertices.length;
-					tmp.vertices.push(geometry.vertices[_c].clone());
+					tmp.vertices.push(tmp.vertices[c].clone());
 
 					//STORE INNERVERTICES
 					tmp.inner.push({outer: a, inner: a1, center: center});
 					tmp.inner.push({outer: b, inner: b1, center: center});
 					tmp.inner.push({outer: c, inner: c1, center: center});
-
-					console.log(a + " " + b + " " + c + " ... " + a1 + " " + b1+ " " + c1);
-					console.log(tmp.vertices);
 					
 
 						//BUILT NEW FACES
@@ -176,7 +172,7 @@
 
 					tmp.faces.push(new THREE.Face3(a1, b1, c1));
 					//tmp.faces.push(new THREE.Face3(a, b, c));
-				});
+				};
 
 				//console.log(tmp.vertices);
 				return tmp;
@@ -188,7 +184,6 @@
 				this.geometry.inner.forEach(function(d){
 					geometry.vertices[d.inner].copy( 
 						d.center.lerp(geometry.vertices[d.outer], amount)
-						//geometry.vertices[d.outer].lerp(d.center, amount)
 					);
 				});
 
@@ -203,11 +198,15 @@
 			this.generateMesh = function () {
 
 				var  materials = [
-					//new THREE.MeshLambertMaterial( { color: 0xffffff, shading: THREE.FlatShading, vertexColors: THREE.VertexColors } ),
-					new THREE.MeshBasicMaterial( { color: 0x000000, shading: THREE.FlatShading, wireframe: true, transparent: true } )
+					new THREE.MeshNormalMaterial(),
+					new THREE.MeshBasicMaterial({	wireframe: true, }),
+					new THREE.MeshBasicMaterial({ 	color: 0x000000, 
+													shading: THREE.FlatShading, 
+													wireframe: true, 
+													transparent: true } ),
 				];
 
-				this.mesh = new THREE.SceneUtils.createMultiMaterialObject( this.geometry, materials);
+				this.mesh = new THREE.Mesh(this.geometry, materials[0]);
 
 			};
 
@@ -220,20 +219,37 @@
 			}
 
 			this.setMaterial = function() {
+				console.log("set material");
 
-				this.material = new THREE.MeshBasicMaterial( { color: 0x000000, shading: THREE.FlatShading, wireframe: true, transparent: true } );//THREE.MeshLambertMaterial( { color: 0xffffff,  shading: THREE.FlatShading, vertexColors: THREE.VertexColors } );
+				this.material = new THREE.MeshBasicMaterial();
+				//{ color: 0x000000, shading: THREE.FlatShading, wireframe: true, transparent: true } );//THREE.MeshLambertMaterial( { color: 0xffffff,  shading: THREE.FlatShading, vertexColors: THREE.VertexColors } );
 				this.material = this.material;
 			}
 
 
 
 			this.smooth = function () {
-				//this.geometrySmoothed = this.geometry.clone();
-				this.modifier = new THREE.SubdivisionModifier( 1 );
-				this.modifier.modify(this.geometry);
-				//this.geometry.colorsNeedUpdate = true
-				this.geometry.verticesNeedUpdate = true;
+
+				viz.scene.remove(this.mesh);
+
+				var tmp = new THREE.Geometry();
+				tmp.vertices = this.geometry.vertices;
+				tmp.faces = this.geometry.faces;
+
+				var modifier = new THREE.SubdivisionModifier( 2 );
+				modifier.modify(tmp);
+
+				this.geometry = tmp;
+
+				this.generateMesh();
+				viz.scene.add(this.mesh);
+
 				//this.geometry.mergeVertices();
+				//this.modifier = new THREE.SubdivisionModifier( 1 );
+				//this.modifier.modify(this.geometry);
+				//this.geometry.colorsNeedUpdate = true
+				//this.geometry.verticesNeedUpdate = true;
+				
 				//this.geometry.computeFaceNormals();
 				//this.geometry.computeVertexNormals();
 
@@ -246,6 +262,8 @@
 		}
 
 
+		//-----------------------------------------------
+		// PREVIOUS VERSION
 
 		var ParametricCube_OLD = function() {
 
