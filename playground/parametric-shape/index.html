@@ -115,33 +115,36 @@
 				tmp.inner = [];
 
 				geometry.faces.forEach(function(face,i){
-					if (i > 0) return;
+					//if (i > 4) return;
 
 					//CURRENT FACE a, b, c
-					var a = face.a;
-					var b = face.b;
-					var c = face.c;
+					var _a = face.a;
+					var _b = face.b;
+					var _c = face.c;
 
 					//GET CENTER
 					var center = new THREE.Vector3();
-					center.add(geometry.vertices[a]);
-					center.add(geometry.vertices[b]);
-					center.add(geometry.vertices[c]);
+					center.add(geometry.vertices[_a]);
+					center.add(geometry.vertices[_b]);
+					center.add(geometry.vertices[_c]);
 					center.divideScalar(3);
 					console.log(center);
 
 					//OUTER VERTICES
-					tmp.vertices.push(geometry.vertices[a]);
-					tmp.vertices.push(geometry.vertices[b]);
-					tmp.vertices.push(geometry.vertices[c]);
+					var a = tmp.vertices.length;
+					tmp.vertices.push(geometry.vertices[_a]);
+					var b = tmp.vertices.length;
+					tmp.vertices.push(geometry.vertices[_b]);
+					var c = tmp.vertices.length;
+					tmp.vertices.push(geometry.vertices[_c]);
 
 					//INNER VERTICES
 					var a1 = tmp.vertices.length;
-					tmp.vertices.push(geometry.vertices[a].clone());
+					tmp.vertices.push(geometry.vertices[_a].clone());
 					var b1 = tmp.vertices.length;
-					tmp.vertices.push(geometry.vertices[b].clone());
+					tmp.vertices.push(geometry.vertices[_b].clone());
 					var c1 = tmp.vertices.length;
-					tmp.vertices.push(geometry.vertices[c].clone());
+					tmp.vertices.push(geometry.vertices[_c].clone());
 
 					//STORE INNERVERTICES
 					tmp.inner.push({outer: a, inner: a1, center: center});
@@ -163,16 +166,16 @@
 							b----------c 	c, c1, a1
 						*/
 
-					//tmp.faces.push(new THREE.Face3(a, c, a1));
-					//tmp.faces.push(new THREE.Face3(a, b1, b));
-					//tmp.faces.push(new THREE.Face3(b, c1, c));
+					tmp.faces.push(new THREE.Face3(a, c, a1));
+					tmp.faces.push(new THREE.Face3(a, b1, b));
+					tmp.faces.push(new THREE.Face3(b, c1, c));
 
-					//tmp.faces.push(new THREE.Face3(a, a1, b1));
-					//tmp.faces.push(new THREE.Face3(b, b1, c1));
-					//tmp.faces.push(new THREE.Face3(c, c1, a1));
+					tmp.faces.push(new THREE.Face3(a, a1, b1));
+					tmp.faces.push(new THREE.Face3(b, b1, c1));
+					tmp.faces.push(new THREE.Face3(c, c1, a1));
 
 					tmp.faces.push(new THREE.Face3(a1, b1, c1));
-					tmp.faces.push(new THREE.Face3(a, b, c));
+					//tmp.faces.push(new THREE.Face3(a, b, c));
 				});
 
 				//console.log(tmp.vertices);
@@ -185,6 +188,7 @@
 				this.geometry.inner.forEach(function(d){
 					geometry.vertices[d.inner].copy( 
 						d.center.lerp(geometry.vertices[d.outer], amount)
+						//geometry.vertices[d.outer].lerp(d.center, amount)
 					);
 				});
 
