@@ -51,8 +51,7 @@
 													wireframe: true, 
 													transparent: true } ),
 						}
-		var modifier = new THREE.SubdivisionModifier( 3 );
-		var minAngle = 1;//IN RADIANS
+		var modifier = new THREE.SubdivisionModifier( 4 );
 
 
 		// THE MIGHTY EMOVIS METHOD
@@ -121,23 +120,18 @@
 			//  AND INITS LIST .inner 
 			//  WHERE TRIPPLES (OUTER + INNER VERTEX, CENTER) ARE STORED
 			//	WHICH WILL BE USED FOR SETTING EDGINBESS IN set(amount)
-			this.getInnerGeometry = function(geometry){				
-
-				//GET NEIGHBOURS QUICKLY
-				this.geometry = geometry;
-				this.getNeighbourNormals();
+			this.getInnerGeometry = function(geometry){
 
 				//INIT NEW GEOMETRY - SUCH THAT VERTICES ARE NOT MIXED UP
 				var tmp = new THREE.Geometry();
 				//LINK OLD VERTICES
 				tmp.vertices = geometry.vertices;
-				tmp.superFaces = geometry.faces;
 
 				//this will be a list [{outer: vertex.id, inner: vertex.id, center: center}, ... ]				
 				tmp.inner = [];
 
 				//FOR ALL old VERTICES
-				var len = 2;//geometry.faces.length;
+				var len = geometry.faces.length;
 				for (var i=0;i<len;i++){
 					var face = geometry.faces[i];
 
@@ -153,38 +147,20 @@
 					center.add(geometry.vertices[c]);
 					center.divideScalar(3);
 
-					//STORE INNER-VERTICES-IDs AND CENTER-VECTOR
-					var centerAA1 = [],
-						centerBB1 = [],
-						centerCC1 = [];		
-
 					//OUTER VERTICES SHOULD ALREADY BE IN tmp
 					//INNER VERTICES
-					if (face.a1 == undefined) {
-						var a1 = tmp.vertices.length;
-						tmp.vertices.push(tmp.vertices[a].clone());
-						tmp.inner.push({outer: a, inner: a1, center: centerAA1});
-					} else 
-						a1 = face.a1;
+					var a1 = tmp.vertices.length;
+					tmp.vertices.push(tmp.vertices[a].clone());
+					var b1 = tmp.vertices.length;
+					tmp.vertices.push(tmp.vertices[b].clone());
+					var c1 = tmp.vertices.length;
+					tmp.vertices.push(tmp.vertices[c].clone());
 
-					if (face.b1 == undefined) {
-						var b1 = tmp.vertices.length;
-						tmp.vertices.push(tmp.vertices[b].clone());
-						tmp.inner.push({outer: b, inner: b1, center: centerBB1});
-					} else
-						b1 = face.b1;
-
-					if (face.c1 == undefined) {
-						var c1 = tmp.vertices.length;
-						tmp.vertices.push(tmp.vertices[c].clone());
-						tmp.inner.push({outer: c, inner: c1, center: centerCC1});
-					} else 
-						b1 = face.b1;
-
-					//SUPER-FACE KNOWS ITS SUB-VERTICES
-					face.a1 = a1;
-					face.b1 = b1;
-					face.c1 = c1;									
+					//STORE INNER-VERTICES-IDs AND CENTER-VECTOR
+					tmp.inner.push({outer: a, inner: a1, center: center});
+					tmp.inner.push({outer: b, inner: b1, center: center});
+					tmp.inner.push({outer: c, inner: c1, center: center});
+					
 
 						//BUILT NEW FACES
 						/*
@@ -197,100 +173,18 @@
 							b----------c 	c, c1, a1
 						*/
 
+					tmp.faces.push(new THREE.Face3(a1, c, a));
+					tmp.faces.push(new THREE.Face3(a, b, b1));
+					tmp.faces.push(new THREE.Face3(b, c, c1));
+
+					tmp.faces.push(new THREE.Face3(a1, a, b1));
+					tmp.faces.push(new THREE.Face3(b1, b, c1));
+					tmp.faces.push(new THREE.Face3(c1, c, a1));
+
 					tmp.faces.push(new THREE.Face3(a1, b1, c1));
-
-					// VISIBLE EDGE BETWEEN a AND b
-					if (face.neighbours.ab.normal.angleTo(face.normal) > minAngle){
-						centerAA1.push(tmp.vertices[a].clone().lerp(tmp.vertices[c], .5));
-						centerBB1.push(tmp.vertices[b].clone().lerp(tmp.vertices[c], .5));
-
-						//tmp.faces.push(new THREE.Face3(a, b, b1));
-						//tmp.faces.push(new THREE.Face3(a1, a, b1));
-					} else {
-						//CHECK ALL INDICES INDIVIDUALLY :/
-						if (face.a == face.neighbours.ab.a) face.a1 = face.neighbours.ab.a1;
-						else if (face.a == face.neighbours.ab.b) face.a1 = face.neighbours.ab.b1;
-						else if (face.a == face.neighbours.ab.c) face.a1 = face.neighbours.ab.c1;
-
-						//CHECK ALL INDICES INDIVIDUALLY :/
-						if (face.b == face.neighbours.ab.a) face.neighbours.ab.a1 = face.b1;
-						else if (face.b == face.neighbours.ab.b) face.neighbours.ab.b1 = face.b1;
-						else if (face.b == face.neighbours.ab.c) face.neighbours.ab.c1 = face.b1;
-					}
-
-					// VISIBLE EDGE BETWEEN a AND c
-					if (face.neighbours.ac.normal.angleTo(face.normal) > minAngle){
-						centerAA1.push(tmp.vertices[a].clone().lerp(tmp.vertices[b], .5));
-						centerCC1.push(tmp.vertices[a].clone().lerp(tmp.vertices[c], .5));
-
-						//tmp.faces.push(new THREE.Face3(a1, c, a));
-						//tmp.faces.push(new THREE.Face3(c1, c, a1));
-					} else {
-						//CHECK ALL INDICES INDIVIDUALLY :/
-						if (face.a == face.neighbours.ac.a) face.neighbours.ac.a1 = face.a1;
-						else if (face.a == face.neighbours.ac.b) face.neighbours.ac.b1 = face.a1;
-						else if (face.a == face.neighbours.ac.c) face.neighbours.ac.c1 = face.a1;
-
-						//CHECK ALL INDICES INDIVIDUALLY :/
-						if (face.c == face.neighbours.ac.a) face.neighbours.ac.a1 = face.c1;
-						else if (face.c == face.neighbours.ac.b) face.neighbours.ac.b1 = face.c1;
-						else if (face.c == face.neighbours.ac.c) face.neighbours.ac.c1 = face.c1;
-					}
-
-					// VISIBLE EDGE BETWEEN b AND c
-					if (face.neighbours.bc.normal.angleTo(face.normal) > minAngle){
-						centerBB1.push(tmp.vertices[a].clone().lerp(tmp.vertices[b], .5));
-						centerCC1.push(tmp.vertices[a].clone().lerp(tmp.vertices[c], .5));
-
-						//tmp.faces.push(new THREE.Face3(b, c, c1));
-						//tmp.faces.push(new THREE.Face3(b1, b, c1));
-					} else {
-						//CHECK ALL INDICES INDIVIDUALLY :/
-						if (face.c == face.neighbours.bc.a) face.c1 = face.neighbours.bc.a1;
-						else if (face.c == face.neighbours.bc.b) face.c1 = face.neighbours.bc.b1;
-						else if (face.c == face.neighbours.bc.c) face.c1 = face.neighbours.bc.c1;
-
-						//CHECK ALL INDICES INDIVIDUALLY :/
-						if (face.b == face.neighbours.bc.a) face.b1 = face.neighbours.bc.a1;
-						else if (face.b == face.neighbours.bc.b) face.b1 = face.neighbours.bc.b1;
-						else if (face.b == face.neighbours.bc.c) face.b1 = face.neighbours.bc.c1;
-					}
 				};
 
-				tmp.inner.forEach(function(d,i){
-					if (d.length == 1)
-						tmp.inner[i].center=d[0];
-					else
-						tmp.inner[i].center=center;
-				})
-
 				return tmp;
-			}
-
-			this.getNeighbourNormals = function(){
-				var geometry = this.geometry;
-
-				// GET NEIGHBOURS
-				geometry.faces.forEach(function(face,i){
-					face.neighbours = {};
-					geometry.faces.forEach(function(_face,j){
-						if (i==j){
-							;
-						} else if (	(face.a == _face.a || face.a == _face.b || face.a == _face.c) &&
-									(face.b == _face.a || face.b == _face.b || face.b == _face.c) )
-						{
-							face.neighbours["ab"] = _face;
-						} else if (	(face.c == _face.a || face.c == _face.b || face.c == _face.c) &&
-									(face.a == _face.a || face.a == _face.b || face.a == _face.c) )
-						{
-							face.neighbours["ac"] = _face;
-						} else if (	(face.c == _face.a || face.c == _face.b || face.c == _face.c) &&
-									(face.b == _face.a || face.b == _face.b || face.b == _face.c) )
-						{
-							face.neighbours["bc"] = _face;
-						}
-					});	
-				});
 			}
 
 			// SET EDGINESS
@@ -307,7 +201,7 @@
 
 				// UPDATE MESH + NORMALS
 				if (this.smooth != undefined) 
-					;//this.smooth();
+					this.smooth();
 				this.generateMesh();
 				this.geometry.verticesNeedUpdate = true;
 				this.geometry.colorsNeedUpdate = true
@@ -326,8 +220,7 @@
 
 			this.setWireframe = function() {
 				this.material = materials.wired;
-				if (this.mesh != undefined)
-					this.mesh.material = this.material;
+				this.mesh.material = this.material;
 			}
 
 			this.setMaterial = function() {
@@ -335,6 +228,8 @@
 				if (this.mesh != undefined)
 					this.mesh.material = this.material;
 			}
+
+
 
 			this.smooth = function () {
 
@@ -358,12 +253,9 @@
 
 			// SET OBJECTS GEOMETRY + MESH
 			this.geometry = this.getInnerGeometry(new THREE.BoxGeometry(2,2,2));
-			// DEV
-			//this.geometry = new THREE.BoxGeometry(2,2,2);
 			this.smoothGeometry = undefined;
 			this.mesh = this.generateMesh();
 			this.setMaterial();
-			this.setWireframe();
 		}
 
 
