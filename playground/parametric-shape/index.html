@@ -42,8 +42,19 @@
 
 		});
 
+		//GLOBAL STUFF
+		//MATERIALS
+		var  materials = {	normal: new THREE.MeshNormalMaterial(),
+							wired1: new THREE.MeshBasicMaterial({	wireframe: true, }),
+							wired: new THREE.MeshBasicMaterial({ 	color: 0x000000, 
+													shading: THREE.FlatShading, 
+													wireframe: true, 
+													transparent: true } ),
+						}
+		var modifier = new THREE.SubdivisionModifier( 2 );
 
 
+		// THE MIGHTY EMOVIS METHOD
 		var emoVIZ = function()
 		{
 			self = this;
@@ -55,7 +66,6 @@
 			this.renderer.setSize( $(window).innerWidth(), $(window).innerHeight() );
 			this.renderer.setClearColor( 0xffffff, 1 );
 
-
 			this.pointLight = new THREE.DirectionalLight( 0xffffff );
 			this.scene.add( this.pointLight );
 			this.pointLight.position.set(0, 1, 1);
@@ -63,7 +73,6 @@
 			this.camera.position.set(0, 0, 10);
 			this.parametricCube = new ParametricCube();
 			this.parametricCube.generateMesh();
-
 
 			this.scene.add( this.parametricCube.mesh );
 
@@ -102,21 +111,27 @@
 
 		};
 
+		//PARAMETRIC CUBES
 		var ParametricCube = function() {
 			self = this;
-			//this.geometry = new THREE.BoxGeometry(1,1,1);
 
-
+			// GET INNER GEOMETRY
+			//  ADDS VERTICES AND FACES, 
+			//  AND INITS LIST .inner 
+			//  WHERE TRIPPLES (OUTER + INNER VERTEX, CENTER) ARE STORED
+			//	WHICH WILL BE USED FOR SETTING EDGINBESS IN set(amount)
 			this.getInnerGeometry = function(geometry){
 
-				//this will be a list [{vertex: vertex.id, center: center}, ... ]				
+				//INIT NEW GEOMETRY - SUCH THAT VERTICES ARE NOT MIXED UP
 				var tmp = new THREE.Geometry();
+				//LINK OLD VERTICES
 				tmp.vertices = geometry.vertices;
-				//tmp.faces = geometry.faces;
+
+				//this will be a list [{outer: vertex.id, inner: vertex.id, center: center}, ... ]				
 				tmp.inner = [];
 
-				var len = 10;//geometry.faces.length;
-
+				//FOR ALL old VERTICES
+				var len = geometry.faces.length;
 				for (var i=0;i<len;i++){
 					var face = geometry.faces[i];
 
@@ -133,10 +148,6 @@
 					center.divideScalar(3);
 
 					//OUTER VERTICES SHOULD ALREADY BE IN tmp
-					//tmp.vertices.push(geometry.vertices[a]);
-					//tmp.vertices.push(geometry.vertices[b]);
-					//tmp.vertices.push(geometry.vertices[c]);
-
 					//INNER VERTICES
 					var a1 = tmp.vertices.length;
 					tmp.vertices.push(tmp.vertices[a].clone());
@@ -145,7 +156,7 @@
 					var c1 = tmp.vertices.length;
 					tmp.vertices.push(tmp.vertices[c].clone());
 
-					//STORE INNERVERTICES
+					//STORE INNER-VERTICES-IDs AND CENTER-VECTOR
 					tmp.inner.push({outer: a, inner: a1, center: center});
 					tmp.inner.push({outer: b, inner: b1, center: center});
 					tmp.inner.push({outer: c, inner: c1, center: center});
@@ -162,23 +173,24 @@
 							b----------c 	c, c1, a1
 						*/
 
-					tmp.faces.push(new THREE.Face3(a, c, a1));
-					tmp.faces.push(new THREE.Face3(a, b1, b));
-					tmp.faces.push(new THREE.Face3(b, c1, c));
+					tmp.faces.push(new THREE.Face3(a1, c, a));
+					tmp.faces.push(new THREE.Face3(a, b, b1));
+					tmp.faces.push(new THREE.Face3(b, c, c1));
 
-					tmp.faces.push(new THREE.Face3(a, a1, b1));
-					tmp.faces.push(new THREE.Face3(b, b1, c1));
-					tmp.faces.push(new THREE.Face3(c, c1, a1));
+					tmp.faces.push(new THREE.Face3(a1, a, b1));
+					tmp.faces.push(new THREE.Face3(b1, b, c1));
+					tmp.faces.push(new THREE.Face3(c1, c, a1));
 
 					tmp.faces.push(new THREE.Face3(a1, b1, c1));
-					//tmp.faces.push(new THREE.Face3(a, b, c));
 				};
 
-				//console.log(tmp.vertices);
 				return tmp;
 			}
 
+			// SET EDGINESS
 			this.set = function( amount ) {
+				// JUST A HELPER, AS this.geometry SOMEHOW IS NOT 
+				// KNOWN IN THE function BELOW
 				var geometry = this.geometry;
 
 				this.geometry.inner.forEach(function(d){
@@ -187,27 +199,15 @@
 					);
 				});
 
-				//this.generateMesh();
-				//this.meshmaterial = this.material;
-				//this.updateVertexColor();
-
+				// UPDATE MESH + NORMALS
+				this.generateMesh();
 				this.geometry.verticesNeedUpdate = true;
 				this.geometry.colorsNeedUpdate = true
 			};
 
 			this.generateMesh = function () {
-
-				var  materials = [
-					new THREE.MeshNormalMaterial(),
-					new THREE.MeshBasicMaterial({	wireframe: true, }),
-					new THREE.MeshBasicMaterial({ 	color: 0x000000, 
-													shading: THREE.FlatShading, 
-													wireframe: true, 
-													transparent: true } ),
-				];
-
-				this.mesh = new THREE.Mesh(this.geometry, materials[0]);
-
+				this.geometry.computeFaceNormals();
+				this.mesh = new THREE.Mesh(this.geometry, materials.normal);
 			};
 
 			this.setWireframe = function() {
@@ -219,45 +219,38 @@
 			}
 
 			this.setMaterial = function() {
-				console.log("set material");
-
-				this.material = new THREE.MeshBasicMaterial();
-				//{ color: 0x000000, shading: THREE.FlatShading, wireframe: true, transparent: true } );//THREE.MeshLambertMaterial( { color: 0xffffff,  shading: THREE.FlatShading, vertexColors: THREE.VertexColors } );
-				this.material = this.material;
+				this.material = materials[0];
+				if (this.mesh != undefined)
+					this.mesh.material = this.material;
 			}
 
 
 
 			this.smooth = function () {
 
+				// REMOVE CURRENT OBJECT
+				console.log(this);
+				viz.scene.remove(this);
 				viz.scene.remove(this.mesh);
 
-				var tmp = new THREE.Geometry();
+				// BUILT NEW OBJECT
+				var tmp = new THREE.Geometry().clone();
 				tmp.vertices = this.geometry.vertices;
 				tmp.faces = this.geometry.faces;
+				tmp.inner = this.geometry.inner;
 
-				var modifier = new THREE.SubdivisionModifier( 2 );
+				// MAKE IT SMOOTH	
 				modifier.modify(tmp);
-
 				this.geometry = tmp;
-
 				this.generateMesh();
+
+				// ADD NEW OBJECT
 				viz.scene.add(this.mesh);
-
-				//this.geometry.mergeVertices();
-				//this.modifier = new THREE.SubdivisionModifier( 1 );
-				//this.modifier.modify(this.geometry);
-				//this.geometry.colorsNeedUpdate = true
-				//this.geometry.verticesNeedUpdate = true;
-				
-				//this.geometry.computeFaceNormals();
-				//this.geometry.computeVertexNormals();
-
-				//this.meshSmoothed = new THREE.Mesh( this.geometrySmoothed, this.wireframe);
-
 			};
 
+			// SET OBJECTS GEOMETRY + MESH
 			this.geometry = this.getInnerGeometry(new THREE.BoxGeometry(2,2,2));
+			this.mesh = this.generateMesh();
 			this.setMaterial();
 		}
 
@@ -542,28 +535,15 @@
 			};
 
 			this.generateMesh = function () {
-
-				var  materials = [
-					//new THREE.MeshLambertMaterial( { color: 0xffffff, shading: THREE.FlatShading, vertexColors: THREE.VertexColors } ),
-					new THREE.MeshBasicMaterial( { color: 0x000000, shading: THREE.FlatShading, wireframe: true, transparent: true } )
-				];
-
-				this.mesh = new THREE.SceneUtils.createMultiMaterialObject( this.geometry, materials);
-
+				this.mesh = new THREE.SceneUtils.createMultiMaterialObject( this.geometry, materials.normal);
 			};
 
 			this.setWireframe = function() {
-
-				this.material = new THREE.MeshBasicMaterial({ 
-					wireframe: true, color: 0x000000
-				});
-				this.mesh.material = this.material;
+				this.mesh.material = materials.wired;
 			}
 
 			this.setMaterial = function() {
-
-				this.material = new THREE.MeshLambertMaterial( { color: 0xffffff,  shading: THREE.FlatShading, vertexColors: THREE.VertexColors } );
-				this.mesh.material = this.material;
+				this.mesh.material = materials.normal;
 			}
 
 
