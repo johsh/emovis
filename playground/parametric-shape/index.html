@@ -219,14 +219,12 @@
 			};
 
 			this.setWireframe = function() {
-				this.material = new THREE.MeshBasicMaterial({ 
-					wireframe: true, color: 0x000000
-				});
+				this.material = materials.wired;
 				this.mesh.material = this.material;
 			}
 
 			this.setMaterial = function() {
-				this.material = materials[0];
+				this.material = materials.normal;
 				if (this.mesh != undefined)
 					this.mesh.material = this.material;
 			}
