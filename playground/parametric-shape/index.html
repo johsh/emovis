@@ -51,7 +51,7 @@
 													wireframe: true, 
 													transparent: true } ),
 						}
-		var modifier = new THREE.SubdivisionModifier( 2 );
+		var modifier = new THREE.SubdivisionModifier( 4 );
 
 
 		// THE MIGHTY EMOVIS METHOD
@@ -200,18 +200,25 @@
 				});
 
 				// UPDATE MESH + NORMALS
+				if (this.smooth != undefined) 
+					this.smooth();
 				this.generateMesh();
 				this.geometry.verticesNeedUpdate = true;
 				this.geometry.colorsNeedUpdate = true
 			};
 
 			this.generateMesh = function () {
-				this.geometry.computeFaceNormals();
-				this.mesh = new THREE.Mesh(this.geometry, materials.normal);
+				if (this.smoothGeometry != undefined){
+					this.smoothGeometry.computeFaceNormals();
+					this.mesh = new THREE.Mesh(this.smoothGeometry, materials.normal);
+				} else {
+					this.geometry.computeFaceNormals();
+					this.mesh = new THREE.Mesh(this.geometry, materials.normal);
+				}
+				this.mesh.name="ParametricCube";
 			};
 
 			this.setWireframe = function() {
-
 				this.material = new THREE.MeshBasicMaterial({ 
 					wireframe: true, color: 0x000000
 				});
@@ -229,9 +236,7 @@
 			this.smooth = function () {
 
 				// REMOVE CURRENT OBJECT
-				console.log(this);
-				viz.scene.remove(this);
-				viz.scene.remove(this.mesh);
+				viz.scene.remove(viz.scene.getObjectByName("ParametricCube"));
 
 				// BUILT NEW OBJECT
 				var tmp = new THREE.Geometry().clone();
@@ -241,7 +246,7 @@
 
 				// MAKE IT SMOOTH	
 				modifier.modify(tmp);
-				this.geometry = tmp;
+				this.smoothGeometry = tmp;
 				this.generateMesh();
 
 				// ADD NEW OBJECT
@@ -250,6 +255,7 @@
 
 			// SET OBJECTS GEOMETRY + MESH
 			this.geometry = this.getInnerGeometry(new THREE.BoxGeometry(2,2,2));
+			this.smoothGeometry = undefined;
 			this.mesh = this.generateMesh();
 			this.setMaterial();
 		}
