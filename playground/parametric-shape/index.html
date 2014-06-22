@@ -46,7 +46,16 @@
 		//GLOBAL STUFF
 		//MATERIALS
 		var  materials = {	normal: new THREE.MeshNormalMaterial(),
-							wired1: new THREE.MeshBasicMaterial({	wireframe: true, }),
+							test: new THREE.MeshPhongMaterial( { color: 0x000000, specular: 0x666666, emissive: 0xff0000, ambient: 0x000000, shininess: 10, shading: THREE.SmoothShading, opacity: 0.9, transparent: true } ),
+							redClay: new THREE.MeshLambertMaterial( { color: 0x666666, emissive: 0xa00000, ambient: 0x000000, shading: THREE.SmoothShading } ),
+							greenGreySmooth: new THREE.MeshPhongMaterial( { ambient: 0x030303, color: 0xdddddd, specular: 0x009900, shininess: 30, shading: THREE.SmoothShading, transparent: true } ),
+							grey: new THREE.MeshLambertMaterial( { color: 0xdddddd, shading: THREE.SmoothShading } ),
+							greenBlack: new THREE.MeshPhongMaterial({	ambient: 0x030303, 
+																color: 0xdddddd, 
+																specular: 0x009900, 
+																shininess: 30, 								
+																shading: THREE.FlatShading } ),
+
 							wired: new THREE.MeshBasicMaterial({ 	color: 0x000000, 
 													shading: THREE.FlatShading, 
 													wireframe: true, 
@@ -91,8 +100,8 @@
 				  setWireframe : function() {
 				  	self.parametricCube.setWireframe();
 				  }, 
-				  setMaterial : function() {
-				  	self.parametricCube.setMaterial();
+				  switchMaterial : function() {
+				  	self.parametricCube.switchMaterial();
 				  }
 			};
 
@@ -103,7 +112,7 @@
 			this.scale = this.gui.add(this.parameters, 'scale', 0, 1);
 
 			this.gui.add(this.parameters, 'setWireframe');
-			this.gui.add(this.parameters, 'setMaterial');
+			this.gui.add(this.parameters, 'switchMaterial');
 
 
 			self = this;
@@ -267,10 +276,10 @@
 			this.generateMesh = function () {
 				if (this.smoothGeometry != undefined){
 					this.smoothGeometry.computeFaceNormals();
-					this.mesh = new THREE.Mesh(this.smoothGeometry, materials.normal);
+					this.mesh = new THREE.Mesh(this.smoothGeometry, this.material);
 				} else {
 					this.geometry.computeFaceNormals();
-					this.mesh = new THREE.Mesh(this.geometry, materials.normal);
+					this.mesh = new THREE.Mesh(this.geometry, this.material);
 				}
 
 				if (self.scaleValue == undefined) self.scaleValue = 10;
@@ -288,17 +297,36 @@
 				this.mesh.material = this.material;
 			}
 
-			this.setMaterial = function() {
-				this.material = materials.normal;
+			this.currentMaterial = 1;
+			this.switchMaterial = function() {
+				this.currentMaterial=(this.currentMaterial+1)%Object.keys(materials).length;
+				this.material = materials[Object.keys(materials)[this.currentMaterial]];
+				console.log(Object.keys(materials)[this.currentMaterial]);
+
 				if (this.mesh != undefined)
 					this.mesh.material = this.material;
+
+				if (viz != undefined) this.resetObject();
 			}
 
-			this.smooth = function () {
+			this.resetObject = function () {
 
 				// REMOVE CURRENT OBJECT
 				viz.scene.remove(viz.scene.getObjectByName("ParametricCube"));
 
+				// BUILT NEW OBJECT
+				if (this.smoothGeometry == undefined)
+					this.smoothGeometry = this.geometry.clone();
+				this.generateMesh();
+
+				this.geometry.verticesNeedUpdate = true;
+				this.geometry.colorsNeedUpdate = true
+
+				// ADD NEW OBJECT
+				viz.scene.add(this.mesh);
+			}
+
+			this.smooth = function () {
 				// BUILT NEW OBJECT
 				if (this.smoothGeometry == undefined)
 					this.smoothGeometry = this.geometry.clone();
@@ -311,12 +339,8 @@
 				// MAKE IT SMOOTH	
 				modifier.modify(tmp);
 				this.smoothGeometry = tmp;
-				this.generateMesh();
-				this.geometry.verticesNeedUpdate = true;
-				this.geometry.colorsNeedUpdate = true
 
-				// ADD NEW OBJECT
-				viz.scene.add(this.mesh);
+				this.resetObject();
 			};
 
 			//RANDOM POLYGON
@@ -336,7 +360,7 @@
 			modifier.modify(this.smoothGeometry);
 
 			this.mesh = this.generateMesh();
-			this.setMaterial();
+			this.switchMaterial();
 		}
 
 
