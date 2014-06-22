@@ -46,7 +46,7 @@
 		//GLOBAL STUFF
 		//MATERIALS
 		var  materials = {	normal: new THREE.MeshNormalMaterial(),
-							test: new THREE.MeshPhongMaterial( { color: 0x000000, specular: 0x666666, emissive: 0xff0000, ambient: 0x000000, shininess: 10, shading: THREE.SmoothShading, opacity: 0.9, transparent: true } ),
+							test: new THREE.MeshPhongMaterial( { color: 0x000000, specular: 0xffffff, emissive: 0xff0000, ambient: 0x000000, shininess: 10, shading: THREE.SmoothShading, opacity: 0.9, transparent: true } ),
 							redClay: new THREE.MeshLambertMaterial( { color: 0x666666, emissive: 0xa00000, ambient: 0x000000, shading: THREE.SmoothShading } ),
 							greenGreySmooth: new THREE.MeshPhongMaterial( { ambient: 0x030303, color: 0xdddddd, specular: 0x009900, shininess: 30, shading: THREE.SmoothShading, transparent: true } ),
 							grey: new THREE.MeshLambertMaterial( { color: 0xdddddd, shading: THREE.SmoothShading } ),
@@ -93,9 +93,12 @@
 
 			// parameters for our shape
 			this.parameters = {
-				  smoothness: 1.0,
-				  ratio :  1.0, 
-				  scale : 1.0, 
+				  smoothness: .5,
+				  ratio :  .5, 
+				  scale : .1, 
+				  complexity: .5,
+				  surface: .5,
+				  symmetrie: 0,
 
 				  setWireframe : function() {
 				  	self.parametricCube.setWireframe();
@@ -110,9 +113,13 @@
 			this.smoothness = this.gui.add(this.parameters, 'smoothness', 0, 1);
 			this.ratio = this.gui.add(this.parameters, 'ratio', 0, 1);
 			this.scale = this.gui.add(this.parameters, 'scale', 0, 1);
+			this.complexity = this.gui.add(this.parameters, 'complexity', 0, 1);
+			this.surface = this.gui.add(this.parameters, 'surface', 0, 1);
+			this.symmetrie = this.gui.add(this.parameters, 'symmetrie', 0, 1);
 
-			this.gui.add(this.parameters, 'setWireframe');
 			this.gui.add(this.parameters, 'switchMaterial');
+			this.gui.add(this.parameters, 'setWireframe');
+			
 
 
 			self = this;
@@ -132,6 +139,13 @@
 														self.scaleValue*self.ratioValue);
 				}
 			);
+
+			self.complexity.onChange(
+				function(value){
+					value=parseInt(value*20);
+					self.parametricCube.complexity(value);
+				}
+			)
 
 			self.scale.onChange(
 				function(value) {
@@ -343,23 +357,34 @@
 				this.resetObject();
 			};
 
-			//RANDOM POLYGON
-			var polyGeometry = new THREE.Geometry(); 
-			for (var i=0; i<100; i++){
-				var v = new THREE.Vector3(	1*(Math.random()-.5),
-											1*(Math.random()-.5),
-											1*(Math.random()-.5));
-				v.id = i;
-				polyGeometry.vertices.push(v);
+			this.complexity = function(value){
+
+				if (value <= 1){
+					this.geometry = new THREE.BoxGeometry(1,1,1);
+				} else {
+					//RANDOM POLYGON
+					var polyGeometry = new THREE.Geometry(); 
+					for (var i=0; i<value*10; i++){
+						var v = new THREE.Vector3(	1*(Math.random()-.5),
+													1*(Math.random()-.5),
+													1*(Math.random()-.5));
+						v.id = i;
+						polyGeometry.vertices.push(v);
+					}
+					this.geometry = QuickHull(polyGeometry);
+				}
+				this.smoothGeometry = this.subdivideRigid(this.geometry.clone(), 1);
+
+				this.mesh = this.generateMesh();
+				/*this.mesh.scale.set(self.scaleValue*self.ratioValue, 
+									self.scaleValue*(1-self.ratioValue), 
+									self.scaleValue*self.ratioValue);*/
+
+				if (viz != undefined) this.resetObject();
 			}
-			this.geometry = QuickHull(polyGeometry);
 
-
-			//this.geometry = new THREE.BoxGeometry(1,1,1);
-			this.smoothGeometry = this.subdivideRigid(this.geometry.clone(), 1);
-			modifier.modify(this.smoothGeometry);
-
-			this.mesh = this.generateMesh();
+			this.complexity(10);			
+			//modifier.modify(this.smoothGeometry);
 			this.switchMaterial();
 		}
 
