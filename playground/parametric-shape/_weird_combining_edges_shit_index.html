@@ -1,0 +1,710 @@
+<html>
+	<head>
+		<title>Awesome shit</title>
+		<style>
+			canvas { 
+				width: 100%; 
+				height: 100% 
+			}
+		</style>
+	</head>
+	<body>
+		<script src="../../assets/js/three.min.js"></script>
+		<script src="../../assets/js/orbitcontrols.js"></script>
+		<script src="../../assets/js/dat.gui.min.js"></script>
+		<script src="../../assets/js/SubdivisionModifier.js"></script>
+		<script src="../../assets/js/jquery-2.1.1.min.js"></script>
+		<link rel="stylesheet" href="../../assets/css/style.css">
+		<script>
+
+		var viz;
+
+		$( document )
+			.ready(
+				function() {
+
+				viz = new emoVIZ();
+				document.body.appendChild( viz.renderer.domElement );
+
+				// LIGHT
+				//var light = new THREE.AmbientLight( 0x404040 );
+				//scene.add(light);
+
+				//RENDER
+				function render() {
+					requestAnimationFrame( render ); 
+					//viz.parametricCube.mesh.rotation.y += 0.01;
+					//viz.parametricCube.mesh.rotation.z += 0.01;
+					viz.renderer.render(viz.scene, viz.camera); 
+				}
+
+				render();
+
+		});
+
+		//GLOBAL STUFF
+		//MATERIALS
+		var  materials = {	normal: new THREE.MeshNormalMaterial(),
+							wired1: new THREE.MeshBasicMaterial({	wireframe: true, }),
+							wired: new THREE.MeshBasicMaterial({ 	color: 0x000000, 
+													shading: THREE.FlatShading, 
+													wireframe: true, 
+													transparent: true } ),
+						}
+		var modifier = new THREE.SubdivisionModifier( 3 );
+		var minAngle = 1;//IN RADIANS
+
+		//MERGES SUB-NODES i.e. a1 + a1 OF FACE AND SUB-FACE
+		function mergeVertices1(face, edge, part, v){
+							if (	 face.neighbours[edge].a1 != undefined && face[part] == face.neighbours[edge].a) 
+								v = face.neighbours[edge].a1;
+							else if (face.neighbours[edge].b1 != undefined && face[part] == face.neighbours[edge].b) 
+								v = face.neighbours[edge].b1;
+							else if (face.neighbours[edge].c1 != undefined && face[part] == face.neighbours[edge].c) 
+								v = face.neighbours[edge].c1;							
+						}
+
+
+		// THE MIGHTY EMOVIS METHOD
+		var emoVIZ = function()
+		{
+			self = this;
+
+			this.scene = new THREE.Scene();
+			this.camera = new THREE.PerspectiveCamera( 75, $(window).innerWidth() / $(window).innerHeight(), 0.1, 1000);
+			this.controls = new THREE.OrbitControls( this.camera );
+			this.renderer = new THREE.WebGLRenderer( { antialias: true } );
+			this.renderer.setSize( $(window).innerWidth(), $(window).innerHeight() );
+			this.renderer.setClearColor( 0xffffff, 1 );
+
+			this.pointLight = new THREE.DirectionalLight( 0xffffff );
+			this.scene.add( this.pointLight );
+			this.pointLight.position.set(0, 1, 1);
+
+			this.camera.position.set(0, 0, 10);
+			this.parametricCube = new ParametricCube();
+			this.parametricCube.generateMesh();
+
+			this.scene.add( this.parametricCube.mesh );
+
+			// parameters for our shape
+			this.parameters = {
+				  ratio :  0.0, scale : 0.0, 
+				  smooth : function() {
+				  	self.parametricCube.smooth();
+				  }, 
+				  setWireframe : function() {
+				  	self.parametricCube.setWireframe();
+				  }, 
+				  setMaterial : function() {
+				  	self.parametricCube.setMaterial();
+				  }
+			};
+
+
+			this.gui = new dat.GUI();
+			this.ratio = this.gui.add(this.parameters, 'ratio', 0, 1);
+			this.scale = this.gui.add(this.parameters, 'scale', 0, 1);
+			this.scale = this.gui.add(this.parameters, 'smooth');
+			this.scale = this.gui.add(this.parameters, 'setWireframe');
+			this.scale = this.gui.add(this.parameters, 'setMaterial');
+
+
+			self = this;
+
+			// this event updates the parametriccube
+			this.ratio.onChange(
+				function(value) {
+					self.parametricCube.set(value);
+				}
+			);
+
+
+		};
+
+		//PARAMETRIC CUBES
+		var ParametricCube = function() {
+			self = this;
+
+			// GET INNER GEOMETRY
+			//  ADDS VERTICES AND FACES, 
+			//  AND INITS LIST .inner 
+			//  WHERE TRIPPLES (OUTER + INNER VERTEX, CENTER) ARE STORED
+			//	WHICH WILL BE USED FOR SETTING EDGINBESS IN set(amount)
+			this.getInnerGeometry = function(geometry){				
+
+				//GET NEIGHBOURS QUICKLY
+				this.geometry = geometry;
+				this.getNeighbourNormals();
+
+				//INIT NEW GEOMETRY - SUCH THAT VERTICES ARE NOT MIXED UP
+				var tmp = new THREE.Geometry();
+				//LINK OLD VERTICES
+				tmp.vertices = geometry.vertices;
+				tmp.superFaces = geometry.faces;
+
+				//this will be a list [{outer: vertex.id, inner: vertex.id, center: center}, ... ]				
+				tmp.inner = [];
+
+				//FOR ALL old VERTICES
+				var len = 12;//geometry.faces.length;
+				for (var i=0;i<len;i++){
+					var face = geometry.faces[i];
+
+					//CURRENT FACE a, b, c
+					var a = face.a;
+					var b = face.b;
+					var c = face.c;
+
+					//GET CENTER
+					var center = new THREE.Vector3();
+					center.add(geometry.vertices[a]);
+					center.add(geometry.vertices[b]);
+					center.add(geometry.vertices[c]);
+					center.divideScalar(3);
+
+					//OUTER VERTICES SHOULD ALREADY BE IN tmp
+					//INNER VERTICES
+					if (face.a1 == undefined) {
+						var a1 = tmp.vertices.length;
+						tmp.vertices.push(tmp.vertices[a].clone());
+						tmp.inner.push({outer: a, inner: a1, center: center});
+					} else 
+						a1 = face.a1;
+
+					if (face.b1 == undefined) {
+						var b1 = tmp.vertices.length;
+						tmp.vertices.push(tmp.vertices[b].clone());
+						tmp.inner.push({outer: b, inner: b1, center: center});
+					} else
+						b1 = face.b1;
+
+					if (face.c1 == undefined) {
+						var c1 = tmp.vertices.length;
+						tmp.vertices.push(tmp.vertices[c].clone());
+						tmp.inner.push({outer: c, inner: c1, center: center});
+					} else 
+						b1 = face.b1;
+
+					//SUPER-FACE KNOWS ITS SUB-VERTICES
+					face.a1 = a1;
+					face.b1 = b1;
+					face.c1 = c1;	
+
+					//SUPER-FACE KNOW SUB-FACES
+					//face.subFaces = [];								
+
+						//BUILT NEW FACES
+						/*
+							     a 		new faces:
+							     /\			a, c, a1	and origin-face 
+							    /a1\		a, b1, b 		a, b, c
+							   / /\ \		b, c1, c 	becomes
+							  / /  \ \		a, a1,b1 		a1, b1, c1
+							 / b1--c1 \		b, b1, c1
+							b----------c 	c, c1, a1
+						*/
+
+					// VISIBLE EDGE BETWEEN a AND b
+					if (face.neighbours.ab.normal.angleTo(face.normal) > minAngle){
+						tmp.faces.push(new THREE.Face3(a, b, b1));
+						tmp.faces.push(new THREE.Face3(a1, a, b1));
+					} else {
+						
+						mergeVertices1(face, "ab", "a", a1);
+						mergeVertices1(face, "ab", "b", b1);
+
+						/*//CHECK ALL INDICES INDIVIDUALLY :/
+						if (	 face.neighbours.ab.a1 != undefined && face.a == face.neighbours.ab.a) 
+							a1 = face.neighbours.ab.a1;
+						else if (face.neighbours.ab.b1 != undefined && face.a == face.neighbours.ab.b) 
+							a1 = face.neighbours.ab.b1;
+						else if (face.neighbours.ab.c1 != undefined && face.a == face.neighbours.ab.c) 
+							a1 = face.neighbours.ab.c1;
+
+						//CHECK ALL INDICES INDIVIDUALLY :/
+						if (	 face.neighbours.ab.a1 != undefined && face.b == face.neighbours.ab.a) 
+							b1 = face.neighbours.ab.a1;
+						else if (face.neighbours.ab.b1 != undefined && face.b == face.neighbours.ab.b)
+							b1 = face.neighbours.ab.b1;
+						else if (face.neighbours.ab.c1 != undefined && face.b == face.neighbours.ab.c) 
+							b1 = face.neighbours.ab.c1;*/
+
+						//NOT ONLY SET NODES BUT UPDATE FACES!*/
+					}
+
+					// VISIBLE EDGE BETWEEN a AND c
+					if (face.neighbours.ac.normal.angleTo(face.normal) > minAngle){
+						tmp.faces.push(new THREE.Face3(a1, c, a));
+						tmp.faces.push(new THREE.Face3(c1, c, a1));
+					} else {
+						console.log("ac");
+						console.log(face.neighbours.ac);
+						console.log(face);
+
+						mergeVertices1(face, "ac", "a", a1);
+						mergeVertices1(face, "ac", "c", c1);
+
+						/*//CHECK ALL INDICES INDIVIDUALLY :/
+						if (	 face.neighbours.ac.a1 != undefined && face.a == face.neighbours.ac.a) 
+							a1 = face.neighbours.ac.a1;
+						else if (face.neighbours.ac.b1 != undefined && face.a == face.neighbours.ac.b) 
+							a1 = face.neighbours.ac.b1;
+						else if (face.neighbours.ac.c1 != undefined && face.a == face.neighbours.ac.c) 
+							a1 = face.neighbours.ac.c1;
+
+						//CHECK ALL INDICES INDIVIDUALLY :/
+						if (	 face.neighbours.ac.a1 != undefined && face.c == face.neighbours.ac.a) 
+							c1 = face.neighbours.ac.a1;
+						else if (face.neighbours.ac.b1 != undefined && face.c == face.neighbours.ac.b) 
+							c1 = face.neighbours.ac.b1;
+						else if (face.neighbours.ac.c1 != undefined && face.c == face.neighbours.ac.c)
+							c1 = face.neighbours.ac.c1;*/
+					}
+
+					// VISIBLE EDGE BETWEEN b AND c
+					if (face.neighbours.bc.normal.angleTo(face.normal) > minAngle){
+						tmp.faces.push(new THREE.Face3(b, c, c1));
+						tmp.faces.push(new THREE.Face3(b1, b, c1));
+					} else {
+						console.log("bc");
+						console.log(face.neighbours.bc);
+						console.log(face);
+
+						mergeVertices1(face, "bc", "b", b1);
+						mergeVertices1(face, "bc", "c", c1);
+
+						/*
+						//CHECK ALL INDICES INDIVIDUALLY :/
+						if (	 face.neighbours.bc.a1 != undefined && face.c == face.neighbours.bc.a) 
+							c1 = face.neighbours.bc.a1;
+						else if (face.neighbours.bc.b1 != undefined && face.c == face.neighbours.bc.b) 
+							c1 = face.neighbours.bc.b1;
+						else if (face.neighbours.bc.c1 != undefined && face.c == face.neighbours.bc.c) 
+							c1 = face.neighbours.bc.c1;
+
+						//CHECK ALL INDICES INDIVIDUALLY :/
+						if (	 face.neighbours.bc.a1 != undefined && face.b == face.neighbours.bc.a) 
+							b1 = face.neighbours.bc.a1;
+						else if (face.neighbours.bc.b1 != undefined && face.b == face.neighbours.bc.b)
+							b1 = face.neighbours.bc.b1;
+						else if (face.neighbours.bc.c1 != undefined && face.b == face.neighbours.bc.c) 
+							b1 = face.neighbours.bc.c1;*/
+					}
+
+					tmp.faces.push(new THREE.Face3(a1, b1, c1));
+				};
+
+				return tmp;
+			}
+
+			this.getNeighbourNormals = function(){
+				var geometry = this.geometry;
+
+				// GET NEIGHBOURS
+				geometry.faces.forEach(function(face,i){
+					face.neighbours = {};
+					geometry.faces.forEach(function(_face,j){
+						if (i==j){
+							;
+						} else if (	(face.a == _face.a || face.a == _face.b || face.a == _face.c) &&
+									(face.b == _face.a || face.b == _face.b || face.b == _face.c) )
+						{
+							face.neighbours["ab"] = _face;
+						} else if (	(face.c == _face.a || face.c == _face.b || face.c == _face.c) &&
+									(face.a == _face.a || face.a == _face.b || face.a == _face.c) )
+						{
+							face.neighbours["ac"] = _face;
+						} else if (	(face.c == _face.a || face.c == _face.b || face.c == _face.c) &&
+									(face.b == _face.a || face.b == _face.b || face.b == _face.c) )
+						{
+							face.neighbours["bc"] = _face;
+						}
+					});	
+				});
+			}
+
+			// SET EDGINESS
+			this.set = function( amount ) {
+				// JUST A HELPER, AS this.geometry SOMEHOW IS NOT 
+				// KNOWN IN THE function BELOW
+				var geometry = this.geometry;
+
+				this.geometry.inner.forEach(function(d){
+					geometry.vertices[d.inner].copy( 
+						d.center.clone().lerp(geometry.vertices[d.outer], amount)
+					);
+				});
+
+				// UPDATE MESH + NORMALS
+				if (this.smooth != undefined) 
+					;//this.smooth();
+				this.generateMesh();
+				this.geometry.verticesNeedUpdate = true;
+				this.geometry.colorsNeedUpdate = true
+			};
+
+			this.generateMesh = function () {
+				if (this.smoothGeometry != undefined){
+					this.smoothGeometry.computeFaceNormals();
+					this.mesh = new THREE.Mesh(this.smoothGeometry, materials.normal);
+				} else {
+					this.geometry.computeFaceNormals();
+					this.mesh = new THREE.Mesh(this.geometry, materials.normal);
+				}
+				this.mesh.name="ParametricCube";
+			};
+
+			this.setWireframe = function() {
+				this.material = materials.wired;
+				if (this.mesh != undefined)
+					this.mesh.material = this.material;
+			}
+
+			this.setMaterial = function() {
+				this.material = materials.normal;
+				if (this.mesh != undefined)
+					this.mesh.material = this.material;
+			}
+
+			this.smooth = function () {
+
+				// REMOVE CURRENT OBJECT
+				viz.scene.remove(viz.scene.getObjectByName("ParametricCube"));
+
+				// BUILT NEW OBJECT
+				var tmp = new THREE.Geometry().clone();
+				tmp.vertices = this.geometry.vertices;
+				tmp.faces = this.geometry.faces;
+				tmp.inner = this.geometry.inner;
+
+				// MAKE IT SMOOTH	
+				modifier.modify(tmp);
+				this.smoothGeometry = tmp;
+				this.generateMesh();
+
+				// ADD NEW OBJECT
+				viz.scene.add(this.mesh);
+			};
+
+			// SET OBJECTS GEOMETRY + MESH
+			this.geometry = this.getInnerGeometry(new THREE.BoxGeometry(2,2,2));
+			// DEV
+			//this.geometry = new THREE.BoxGeometry(2,2,2);
+			this.smoothGeometry = undefined;
+			this.mesh = this.generateMesh();
+			this.setMaterial();
+			this.setWireframe();
+		}
+
+
+		//-----------------------------------------------
+		// PREVIOUS VERSION
+
+		var ParametricCube_OLD = function() {
+
+			self = this;
+
+			this.geometry = new THREE.Geometry();//{ smoothed : new THREE.Geometry(), original: new THREE.Geometry() }
+			this.geometrySmoothed = new THREE.Geometry();
+			this.mesh = {smoothed:{}, original : {} };
+
+				/*  vertice-index as seen from orthogonal 'above' of top, 
+
+				1----2
+				|	 |    
+				|	 |   
+				0----3
+
+				vertice-index as seen from orthogonal 'above' of bottom, 
+
+				5----6
+				|	 |    
+				|	 |   
+				4----7
+
+				*/
+
+			this.outerVertices = {
+				bottom : [
+					// bottom
+					new THREE.Vector3(0,0,0),
+					new THREE.Vector3(0,0,1),
+					new THREE.Vector3(1,0,1),
+					new THREE.Vector3(1,0,0)
+				], 
+				top : [
+					// top
+					new THREE.Vector3(0,1,0),
+					new THREE.Vector3(0,1,1),
+					new THREE.Vector3(1,1,1),
+					new THREE.Vector3(1,1,0)
+				]
+			};
+
+			this.geometry.vertices.push( this.outerVertices.top[0] );
+			this.geometry.vertices.push( this.outerVertices.top[1] );
+			this.geometry.vertices.push( this.outerVertices.top[2] );
+			this.geometry.vertices.push( this.outerVertices.top[3] );
+
+			this.geometry.vertices.push( this.outerVertices.bottom[0] );
+			this.geometry.vertices.push( this.outerVertices.bottom[1] );
+			this.geometry.vertices.push( this.outerVertices.bottom[2] );
+			this.geometry.vertices.push( this.outerVertices.bottom[3] );
+
+
+
+			this.centroids = {
+				front 	: new THREE.Vector3(0.5,0.5,0),
+				back 	: new THREE.Vector3(0.5,0.5,1),
+				left 	: new THREE.Vector3(0,0.5,0.5),
+				right 	: new THREE.Vector3(1,0.5,0.5),
+				top 	: new THREE.Vector3(0.5,1,0.5),
+				bottom 	: new THREE.Vector3(0.5,0,0.5)
+			};
+
+			this.innerVertices = { front : [],  back : [],  left : [],  right : [],  top : [],  bottom : [] };
+
+			this.innerVertices.front.push( { v : this.centroids.front.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.front[0].v ); 
+
+			this.innerVertices.front.push( { v : this.centroids.front.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.front[1].v ); 
+			this.innerVertices.front.push( { v : this.centroids.front.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.front[2].v ); 
+			this.innerVertices.front.push( { v : this.centroids.front.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.front[3].v ); 
+
+			this.innerVertices.back.push( {v : this.centroids.back.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.back[0].v );
+			this.innerVertices.back.push( {v : this.centroids.back.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.back[1].v );
+			this.innerVertices.back.push( {v : this.centroids.back.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.back[2].v );
+			this.innerVertices.back.push( {v : this.centroids.back.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.back[3].v );
+
+			this.innerVertices.left.push( {v : this.centroids.left.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.left[0].v );
+			this.innerVertices.left.push( {v : this.centroids.left.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.left[1].v );
+			this.innerVertices.left.push( {v : this.centroids.left.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.left[2].v );
+			this.innerVertices.left.push( {v : this.centroids.left.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.left[3].v );
+
+			this.innerVertices.right.push( {v : this.centroids.right.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.right[0].v );
+			this.innerVertices.right.push( {v : this.centroids.right.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.right[1].v );
+			this.innerVertices.right.push( {v : this.centroids.right.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.right[2].v );
+			this.innerVertices.right.push( {v : this.centroids.right.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.right[3].v );
+
+			this.innerVertices.top.push( {v : this.centroids.top.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.top[0].v );
+			this.innerVertices.top.push( {v : this.centroids.top.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.top[1].v );
+			this.innerVertices.top.push( {v : this.centroids.top.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.top[2].v );
+			this.innerVertices.top.push( {v : this.centroids.top.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.top[3].v );
+
+			this.innerVertices.bottom.push( {v : this.centroids.bottom.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.bottom[0].v );
+			this.innerVertices.bottom.push( {v : this.centroids.bottom.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.bottom[1].v );
+			this.innerVertices.bottom.push( {v : this.centroids.bottom.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.bottom[2].v );
+			this.innerVertices.bottom.push( {v : this.centroids.bottom.clone(), id : this.geometry.vertices.length } ); this.geometry.vertices.push( this.innerVertices.bottom[3].v );
+
+
+
+			/*this.geometry.faces.push( new THREE.Face3( this.innerVertices.front[0].id, this.innerVertices.front[1].id, this.innerVertices.front[2].id) );
+			this.geometry.faces.push( new THREE.Face3( this.innerVertices.front[2].id, this.innerVertices.front[3].id, this.innerVertices.front[0].id) );
+
+			this.geometry.faces.push( new THREE.Face3( 4, this.innerVertices.front[1].id, this.innerVertices.front[0].id) );
+			this.geometry.faces.push( new THREE.Face3( 4, 0, this.innerVertices.front[1].id) );
+			this.geometry.faces.push( new THREE.Face3( 0, this.innerVertices.front[2].id, this.innerVertices.front[1].id) );
+			this.geometry.faces.push( new THREE.Face3( 0, 3, this.innerVertices.front[2].id) );
+			this.geometry.faces.push( new THREE.Face3( 3, this.innerVertices.front[3].id, this.innerVertices.front[2].id) );
+			this.geometry.faces.push( new THREE.Face3( 3, 7, this.innerVertices.front[3].id) );
+			this.geometry.faces.push( new THREE.Face3( 7, this.innerVertices.front[0].id, this.innerVertices.front[3].id) );
+			this.geometry.faces.push( new THREE.Face3( 7, 4, this.innerVertices.front[0].id) );
+
+*/
+			this.geometry.faces.push( new THREE.Face3( this.innerVertices.back[0].id, this.innerVertices.back[1].id, this.innerVertices.back[2].id) );
+			this.geometry.faces.push( new THREE.Face3( this.innerVertices.back[2].id, this.innerVertices.back[3].id, this.innerVertices.back[0].id) );
+
+
+			this.geometry.faces.push( new THREE.Face3( 6, this.innerVertices.back[1].id, this.innerVertices.back[0].id) );
+			this.geometry.faces.push( new THREE.Face3( 6, 2, this.innerVertices.back[1].id) );
+			this.geometry.faces.push( new THREE.Face3( 2, this.innerVertices.back[2].id, this.innerVertices.back[1].id) );
+			this.geometry.faces.push( new THREE.Face3( 2, 1, this.innerVertices.back[2].id) );
+			this.geometry.faces.push( new THREE.Face3( 1, this.innerVertices.back[3].id, this.innerVertices.back[2].id) );
+			this.geometry.faces.push( new THREE.Face3( 1, 5, this.innerVertices.back[3].id) );
+			this.geometry.faces.push( new THREE.Face3( 5, this.innerVertices.back[0].id, this.innerVertices.back[3].id) );
+			this.geometry.faces.push( new THREE.Face3( 5, 6, this.innerVertices.back[0].id) );
+
+/*
+			this.geometry.faces.push( new THREE.Face3( this.innerVertices.top[0].id, this.innerVertices.top[1].id, this.innerVertices.top[2].id) );
+			this.geometry.faces.push( new THREE.Face3( this.innerVertices.top[2].id, this.innerVertices.top[3].id, this.innerVertices.top[0].id) );
+
+			this.geometry.faces.push( new THREE.Face3( 0, this.innerVertices.top[1].id, this.innerVertices.top[0].id) );
+			this.geometry.faces.push( new THREE.Face3( 0, 1, this.innerVertices.top[1].id) );
+			this.geometry.faces.push( new THREE.Face3( 1, this.innerVertices.top[2].id, this.innerVertices.top[1].id) );
+			this.geometry.faces.push( new THREE.Face3( 1, 2, this.innerVertices.top[2].id) );
+			this.geometry.faces.push( new THREE.Face3( 2, this.innerVertices.top[3].id, this.innerVertices.top[2].id) );
+			this.geometry.faces.push( new THREE.Face3( 2, 3, this.innerVertices.top[3].id) );
+			this.geometry.faces.push( new THREE.Face3( 3, this.innerVertices.top[0].id, this.innerVertices.top[3].id) );
+			this.geometry.faces.push( new THREE.Face3( 3, 0, this.innerVertices.top[0].id) );
+
+
+
+			this.geometry.faces.push( new THREE.Face3( this.innerVertices.bottom[0].id, this.innerVertices.bottom[2].id, this.innerVertices.bottom[1].id) );
+			this.geometry.faces.push( new THREE.Face3( this.innerVertices.bottom[3].id, this.innerVertices.bottom[2].id, this.innerVertices.bottom[0].id) );
+
+			//BOTTOM
+			this.geometry.faces.push( new THREE.Face3( 7, this.innerVertices.bottom[2].id, this.innerVertices.bottom[3].id) );
+			this.geometry.faces.push( new THREE.Face3( 7, 6, this.innerVertices.bottom[2].id) );
+			this.geometry.faces.push( new THREE.Face3( 6, this.innerVertices.bottom[1].id, this.innerVertices.bottom[2].id) );
+			this.geometry.faces.push( new THREE.Face3( 6, 5, this.innerVertices.bottom[1].id) );
+			this.geometry.faces.push( new THREE.Face3( 5, this.innerVertices.bottom[0].id, this.innerVertices.bottom[1].id) );
+			this.geometry.faces.push( new THREE.Face3( 5, 4, this.innerVertices.bottom[0].id) );
+			this.geometry.faces.push( new THREE.Face3( 4, this.innerVertices.bottom[3].id, this.innerVertices.bottom[0].id) );
+			this.geometry.faces.push( new THREE.Face3( 4, 7, this.innerVertices.bottom[3].id) );
+
+			*/
+
+
+/*			this.geometry.faces.push( new THREE.Face3( this.innerVertices.left[0].id, this.innerVertices.left[1].id, this.innerVertices.left[2].id) );
+			this.geometry.faces.push( new THREE.Face3( this.innerVertices.left[2].id, this.innerVertices.left[3].id, this.innerVertices.left[0].id) );
+
+			this.geometry.faces.push( new THREE.Face3( 5, this.innerVertices.left[1].id, this.innerVertices.left[0].id) );
+			this.geometry.faces.push( new THREE.Face3( 5, 1, this.innerVertices.left[1].id) );
+			this.geometry.faces.push( new THREE.Face3( 1, this.innerVertices.left[2].id, this.innerVertices.left[1].id) );
+			this.geometry.faces.push( new THREE.Face3( 1, 0, this.innerVertices.left[2].id) );
+			this.geometry.faces.push( new THREE.Face3( 0, this.innerVertices.left[3].id, this.innerVertices.left[2].id) );
+			this.geometry.faces.push( new THREE.Face3( 0, 4, this.innerVertices.left[3].id) );
+			this.geometry.faces.push( new THREE.Face3( 4, this.innerVertices.left[0].id, this.innerVertices.left[3].id) );
+			this.geometry.faces.push( new THREE.Face3( 4, 5, this.innerVertices.left[0].id) );
+
+			this.geometry.faces.push( new THREE.Face3( this.innerVertices.right[0].id, this.innerVertices.right[1].id, this.innerVertices.right[2].id) );
+			this.geometry.faces.push( new THREE.Face3( this.innerVertices.right[2].id, this.innerVertices.right[3].id, this.innerVertices.right[0].id) );
+
+			this.geometry.faces.push( new THREE.Face3( 7, this.innerVertices.right[1].id, this.innerVertices.right[0].id) );
+			this.geometry.faces.push( new THREE.Face3( 7, 3, this.innerVertices.right[1].id) );
+			this.geometry.faces.push( new THREE.Face3( 3, this.innerVertices.right[2].id, this.innerVertices.right[1].id) );
+			this.geometry.faces.push( new THREE.Face3( 3, 2, this.innerVertices.right[2].id) );
+			this.geometry.faces.push( new THREE.Face3( 2, this.innerVertices.right[3].id, this.innerVertices.right[2].id) );
+			this.geometry.faces.push( new THREE.Face3( 2, 6, this.innerVertices.right[3].id) );
+			this.geometry.faces.push( new THREE.Face3( 6, this.innerVertices.right[0].id, this.innerVertices.right[3].id) );
+			this.geometry.faces.push( new THREE.Face3( 6, 7, this.innerVertices.right[0].id) );
+*/
+
+			for ( var i = 0; i < this.geometry.faces.length; i ++ ) {
+				var f  = this.geometry.faces[ i ];
+				for( var j = 0; j < 3; j++ ) {
+					var color = new THREE.Color( 0xffffff );
+					f.vertexColors.push(color);
+				}
+
+			}
+
+
+
+
+			this.updateVertexColor = function() {
+				var abc = "abc";
+				for ( var i = 0; i < this.geometry.faces.length; i ++ ) {
+					for( var j = 0; j < 3; j++ ) {
+						vertexIndex = this.geometry.faces[i][ abc.charAt(j) ];
+						v = this.geometry.vertices[ vertexIndex ];
+						//this.geometry.faces[ i ].vertexColors[ j ].setRGB( v.x*100, v.y100, v.z*100 );
+						this.geometry.verticesNeedUpdate = true;
+					}
+				}
+			};
+
+			// 0 = centroid, 1 = outerVertice
+			this.set = function( amount ) {
+
+				/* 
+				vertice-index as seen from orthogonal 'above'
+					1----2
+					| \  |
+					|  \ |
+					0----3
+				*/
+
+				// front
+				this.innerVertices.front[0].v.copy( this.centroids.front.clone().lerp( this.outerVertices.bottom[0], amount));
+				this.innerVertices.front[1].v.copy( this.centroids.front.clone().lerp( this.outerVertices.top[0], amount));
+				this.innerVertices.front[2].v.copy( this.centroids.front.clone().lerp( this.outerVertices.top[3], amount));
+				this.innerVertices.front[3].v.copy( this.centroids.front.clone().lerp( this.outerVertices.bottom[3], amount));
+				
+				// back
+				this.innerVertices.back[0].v.copy( this.centroids.back.clone().lerp( this.outerVertices.bottom[2], amount));
+				this.innerVertices.back[1].v.copy( this.centroids.back.clone().lerp( this.outerVertices.top[2], amount));
+				this.innerVertices.back[2].v.copy( this.centroids.back.clone().lerp( this.outerVertices.top[1], amount));
+				this.innerVertices.back[3].v.copy( this.centroids.back.clone().lerp( this.outerVertices.bottom[1], amount));
+
+				// left
+				this.innerVertices.left[0].v.copy( this.centroids.left.clone().lerp( this.outerVertices.bottom[1], amount));
+				this.innerVertices.left[1].v.copy( this.centroids.left.clone().lerp( this.outerVertices.top[1], amount));
+				this.innerVertices.left[2].v.copy( this.centroids.left.clone().lerp( this.outerVertices.top[0], amount));
+				this.innerVertices.left[3].v.copy( this.centroids.left.clone().lerp( this.outerVertices.bottom[0], amount));
+
+
+				// right 
+				this.innerVertices.right[0].v.copy( this.centroids.right.clone().lerp( this.outerVertices.bottom[3], amount));
+				this.innerVertices.right[1].v.copy( this.centroids.right.clone().lerp( this.outerVertices.top[3], amount));
+				this.innerVertices.right[2].v.copy( this.centroids.right.clone().lerp( this.outerVertices.top[2], amount));
+				this.innerVertices.right[3].v.copy( this.centroids.right.clone().lerp( this.outerVertices.bottom[2], amount));
+
+				// top
+				this.innerVertices.top[0].v.copy( this.centroids.top.clone().lerp( this.outerVertices.top[0], amount) );
+				this.innerVertices.top[1].v.copy( this.centroids.top.clone().lerp( this.outerVertices.top[1], amount) );
+				this.innerVertices.top[2].v.copy( this.centroids.top.clone().lerp( this.outerVertices.top[2], amount) );
+				this.innerVertices.top[3].v.copy( this.centroids.top.clone().lerp( this.outerVertices.top[3], amount) );
+
+				// bottom
+				this.innerVertices.bottom[0].v.copy( this.centroids.bottom.clone().lerp( this.outerVertices.bottom[0], amount) );
+				this.innerVertices.bottom[1].v.copy( this.centroids.bottom.clone().lerp( this.outerVertices.bottom[1], amount) );
+				this.innerVertices.bottom[2].v.copy( this.centroids.bottom.clone().lerp( this.outerVertices.bottom[2], amount) );
+				this.innerVertices.bottom[3].v.copy( this.centroids.bottom.clone().lerp( this.outerVertices.bottom[3], amount) );
+
+				console.log(this);
+				this.generateMesh();
+				//this.mesh = null;//new THREE.Mesh(this.geometry, this.material);
+
+				this.meshmaterial = this.material;
+
+				this.updateVertexColor();
+
+				this.geometry.verticesNeedUpdate = true;
+				this.geometry.colorsNeedUpdate = true
+
+
+				//this.mesh.smoothed = new THREE.SceneUtils.createMultiMaterialObject( this.geometry, this.material);
+
+
+				//this.geometry.mergeVertices();
+				//this.geometry.computeFaceNormals();
+				//this.geometry.computeVertexNormals();
+
+
+
+				//this.geometrySmoothed = this.geometry.clone();
+
+			};
+
+			this.generateMesh = function () {
+				this.mesh = new THREE.SceneUtils.createMultiMaterialObject( this.geometry, materials.normal);
+			};
+
+			this.setWireframe = function() {
+				this.mesh.material = materials.wired;
+			}
+
+			this.setMaterial = function() {
+				this.mesh.material = materials.normal;
+			}
+
+
+
+			this.smooth = function () {
+				//this.geometrySmoothed = this.geometry.clone();
+				this.modifier = new THREE.SubdivisionModifier( 1 );
+				this.modifier.modify(this.geometry);
+				//this.geometry.colorsNeedUpdate = true
+				this.geometry.verticesNeedUpdate = true;
+				//this.geometry.mergeVertices();
+				//this.geometry.computeFaceNormals();
+				//this.geometry.computeVertexNormals();
+
+				//this.meshSmoothed = new THREE.Mesh( this.geometrySmoothed, this.wireframe);
+
+			};
+		};
+		</script>
+	</body>
+</html>
