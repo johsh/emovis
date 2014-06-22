@@ -73,6 +73,10 @@
 			this.pointLight.position.set(0, 1, 1);
 
 			this.camera.position.set(0, 0, 10);
+
+			this.ratioValue = .5;
+			this.scaleValue = 10;
+
 			this.parametricCube = new ParametricCube();
 			this.parametricCube.generateMesh();
 
@@ -80,10 +84,10 @@
 
 			// parameters for our shape
 			this.parameters = {
-				  ratio :  1.0, scale : 1.0, 
-				  smooth : function() {
-				  	self.parametricCube.smooth();
-				  }, 
+				  smoothness: 1.0,
+				  ratio :  1.0, 
+				  scale : 1.0, 
+
 				  setWireframe : function() {
 				  	self.parametricCube.setWireframe();
 				  }, 
@@ -94,26 +98,38 @@
 
 
 			this.gui = new dat.GUI();
+			this.smoothness = this.gui.add(this.parameters, 'smoothness', 0, 1);
 			this.ratio = this.gui.add(this.parameters, 'ratio', 0, 1);
 			this.scale = this.gui.add(this.parameters, 'scale', 0, 1);
-			this.scale = this.gui.add(this.parameters, 'smooth');
-			this.scale = this.gui.add(this.parameters, 'setWireframe');
-			this.scale = this.gui.add(this.parameters, 'setMaterial');
+
+			this.gui.add(this.parameters, 'setWireframe');
+			this.gui.add(this.parameters, 'setMaterial');
 
 
 			self = this;
-
+			
 			// this event updates the parametriccube
-			this.ratio.onChange(
+			self.smoothness.onChange(
 				function(value) {
 					self.parametricCube.set(value);
 				}
 			);
 
-			this.scale.onChange(
+			self.ratio.onChange(
 				function(value) {
-					console.log(value);
-					self.parametricCube.mesh.scale.x=3;
+					self.ratioValue = value;
+					self.parametricCube.mesh.scale.set(	self.scaleValue*self.ratioValue, 
+														self.scaleValue*(1-self.ratioValue), 
+														self.scaleValue*self.ratioValue);
+				}
+			);
+
+			self.scale.onChange(
+				function(value) {
+					self.scaleValue = value*20;
+					self.parametricCube.mesh.scale.set(	self.scaleValue*self.ratioValue, 
+														self.scaleValue*(1-self.ratioValue), 
+														self.scaleValue*self.ratioValue);
 				}
 			);
 
@@ -256,6 +272,14 @@
 					this.geometry.computeFaceNormals();
 					this.mesh = new THREE.Mesh(this.geometry, materials.normal);
 				}
+
+				if (self.scaleValue == undefined) self.scaleValue = 10;
+				if (self.ratioValue == undefined) self.ratioValue = .5;
+
+				this.mesh.scale.set(self.scaleValue*self.ratioValue, 
+									self.scaleValue*(1-self.ratioValue), 
+									self.scaleValue*self.ratioValue);
+
 				this.mesh.name="ParametricCube";
 			};
 
@@ -298,9 +322,9 @@
 			//RANDOM POLYGON
 			var polyGeometry = new THREE.Geometry(); 
 			for (var i=0; i<100; i++){
-				var v = new THREE.Vector3(	10*(Math.random()-.5),
-											10*(Math.random()-.5),
-											10*(Math.random()-.5));
+				var v = new THREE.Vector3(	1*(Math.random()-.5),
+											1*(Math.random()-.5),
+											1*(Math.random()-.5));
 				v.id = i;
 				polyGeometry.vertices.push(v);
 			}
@@ -317,6 +341,10 @@
 
 
 		//-----------------------------------------------
+		//-----------------------------------------------
+		//-----------------------------------------------
+		//-----------------------------------------------
+		//
 		// PREVIOUS VERSION
 
 		var ParametricCube_OLD = function() {
