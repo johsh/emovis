@@ -13,6 +13,7 @@
 		<script src="../../assets/js/orbitcontrols.js"></script>
 		<script src="../../assets/js/dat.gui.min.js"></script>
 		<script src="../../assets/js/SubdivisionModifier.js"></script>
+		<script src="../../assets/js/quickhull.js"></script>
 		<script src="../../assets/js/jquery-2.1.1.min.js"></script>
 		<link rel="stylesheet" href="../../assets/css/style.css">
 		<script>
@@ -79,7 +80,7 @@
 
 			// parameters for our shape
 			this.parameters = {
-				  ratio :  0.0, scale : 0.0, 
+				  ratio :  1.0, scale : 1.0, 
 				  smooth : function() {
 				  	self.parametricCube.smooth();
 				  }, 
@@ -106,6 +107,13 @@
 			this.ratio.onChange(
 				function(value) {
 					self.parametricCube.set(value);
+				}
+			);
+
+			this.scale.onChange(
+				function(value) {
+					console.log(value);
+					self.parametricCube.mesh.scale.x=3;
 				}
 			);
 
@@ -233,7 +241,7 @@
 					viz.scene.add(this.mesh);
 
 				} else {
-					modifier = new THREE.SubdivisionModifier( 3-parseInt(amount*4) );
+					modifier = new THREE.SubdivisionModifier( 4-parseInt(amount*4) );
 					this.smoothGeometry = this.subdivideRigid(this.geometry.clone(), parseInt(amount*4));
 					this.smooth();
 				}
@@ -287,8 +295,19 @@
 				viz.scene.add(this.mesh);
 			};
 
-			// SET OBJECTS GEOMETRY + MESH
-			this.geometry = new THREE.BoxGeometry(2,2,2);
+			//RANDOM POLYGON
+			var polyGeometry = new THREE.Geometry(); 
+			for (var i=0; i<100; i++){
+				var v = new THREE.Vector3(	10*(Math.random()-.5),
+											10*(Math.random()-.5),
+											10*(Math.random()-.5));
+				v.id = i;
+				polyGeometry.vertices.push(v);
+			}
+			this.geometry = QuickHull(polyGeometry);
+
+
+			//this.geometry = new THREE.BoxGeometry(1,1,1);
 			this.smoothGeometry = this.subdivideRigid(this.geometry.clone(), 1);
 			modifier.modify(this.smoothGeometry);
 
