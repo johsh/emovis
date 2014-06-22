@@ -51,8 +51,7 @@
 													wireframe: true, 
 													transparent: true } ),
 						}
-		var modifier = new THREE.SubdivisionModifier( 1 );
-		var minAngle = 1;//IN RADIANS
+		var modifier = new THREE.SubdivisionModifier( 4 );
 
 
 		// THE MIGHTY EMOVIS METHOD
@@ -121,123 +120,92 @@
 			//  AND INITS LIST .inner 
 			//  WHERE TRIPPLES (OUTER + INNER VERTEX, CENTER) ARE STORED
 			//	WHICH WILL BE USED FOR SETTING EDGINBESS IN set(amount)
-			this.subdivideRigid = function(geometry, value){
-				for (var i=0; i<value;i++)
-					geometry=this._subdivideRigid(geometry);
-				return geometry;
-			}
-			this._subdivideRigid = function(geometry){
-
-				//GET NEIGHBOURS
-				this.smoothGeometry = geometry;
-				this.smoothGeometry.computeFaceNormals()
-				this.computeNeighbours();
+			this.getInnerGeometry = function(geometry){
 
 				//INIT NEW GEOMETRY - SUCH THAT VERTICES ARE NOT MIXED UP
 				var tmp = new THREE.Geometry();
 				//LINK OLD VERTICES
 				tmp.vertices = geometry.vertices;
 
+				//this will be a list [{outer: vertex.id, inner: vertex.id, center: center}, ... ]				
+				tmp.inner = [];
+
 				//FOR ALL old VERTICES
 				var len = geometry.faces.length;
 				for (var i=0;i<len;i++){
 					var face = geometry.faces[i];
 
-					/*if (face.neighbours.ab.normal.angleTo(face.normal) < minAngle &&
-						face.neighbours.ac.normal.angleTo(face.normal) < minAngle &&
-						face.neighbours.bc.normal.angleTo(face.normal) < minAngle){
-
-						continue;
-					}*/
-
 					//CURRENT FACE a, b, c
 					var a = face.a;
 					var b = face.b;
 					var c = face.c;
-					var vA = geometry.vertices[a];
-					var vB = geometry.vertices[b];
-					var vC = geometry.vertices[c];
 
-					//GET CENTERS	
-					var ab = tmp.vertices.length;				
-					var vAB = tmp.vertices.push(vA.clone().lerp(vB, .5));
+					//GET CENTER
+					var center = new THREE.Vector3();
+					center.add(geometry.vertices[a]);
+					center.add(geometry.vertices[b]);
+					center.add(geometry.vertices[c]);
+					center.divideScalar(3);
 
-					var ac = tmp.vertices.length;				
-					var vAC = tmp.vertices.push(vA.clone().lerp(vC, .5));
+					//OUTER VERTICES SHOULD ALREADY BE IN tmp
+					//INNER VERTICES
+					var a1 = tmp.vertices.length;
+					tmp.vertices.push(tmp.vertices[a].clone());
+					var b1 = tmp.vertices.length;
+					tmp.vertices.push(tmp.vertices[b].clone());
+					var c1 = tmp.vertices.length;
+					tmp.vertices.push(tmp.vertices[c].clone());
 
-					var bc = tmp.vertices.length;				
-					var vBC = tmp.vertices.push(vB.clone().lerp(vC, .5));
+					//STORE INNER-VERTICES-IDs AND CENTER-VECTOR
+					tmp.inner.push({outer: a, inner: a1, center: center});
+					tmp.inner.push({outer: b, inner: b1, center: center});
+					tmp.inner.push({outer: c, inner: c1, center: center});
+					
 
 						//BUILT NEW FACES
 						/*
 							     a 		new faces:
-							     /\			a, ab, ac
-							    /  \		ab, b, bc
-							ab /____\ ac 	ab, bc, ac
-							  /\    /\		ac, bc, c
-							 /  \  /  \
-						  b /____\/____\ c
-						  		  bc
+							     /\			a, c, a1	and origin-face 
+							    /a1\		a, b1, b 		a, b, c
+							   / /\ \		b, c1, c 	becomes
+							  / /  \ \		a, a1,b1 		a1, b1, c1
+							 / b1--c1 \		b, b1, c1
+							b----------c 	c, c1, a1
 						*/
 
-					tmp.faces.push(new THREE.Face3(a, ab, ac));
-					tmp.faces.push(new THREE.Face3(ab, b, bc));
-					tmp.faces.push(new THREE.Face3(ab, bc, ac));
-					tmp.faces.push(new THREE.Face3(ac, bc, c));
+					tmp.faces.push(new THREE.Face3(a1, c, a));
+					tmp.faces.push(new THREE.Face3(a, b, b1));
+					tmp.faces.push(new THREE.Face3(b, c, c1));
+
+					tmp.faces.push(new THREE.Face3(a1, a, b1));
+					tmp.faces.push(new THREE.Face3(b1, b, c1));
+					tmp.faces.push(new THREE.Face3(c1, c, a1));
+
+					tmp.faces.push(new THREE.Face3(a1, b1, c1));
 				};
 
-				tmp.mergeVertices();
+				//tmp.mergeVertices();
 				return tmp;
-			}
-
-			this.computeNeighbours = function(){
-				var geometry = this.geometry;
-
-				// GET NEIGHBOURS
-				geometry.faces.forEach(function(face,i){
-					face.neighbours = {};
-					geometry.faces.forEach(function(_face,j){
-						if (i==j){
-							;
-						} else if (	(face.a == _face.a || face.a == _face.b || face.a == _face.c) &&
-									(face.b == _face.a || face.b == _face.b || face.b == _face.c) )
-						{
-							face.neighbours["ab"] = _face;
-						} else if (	(face.c == _face.a || face.c == _face.b || face.c == _face.c) &&
-									(face.a == _face.a || face.a == _face.b || face.a == _face.c) )
-						{
-							face.neighbours["ac"] = _face;
-						} else if (	(face.c == _face.a || face.c == _face.b || face.c == _face.c) &&
-									(face.b == _face.a || face.b == _face.b || face.b == _face.c) )
-						{
-							face.neighbours["bc"] = _face;
-						}
-					});	
-				});
 			}
 
 			// SET EDGINESS
 			this.set = function( amount ) {
-
 				// JUST A HELPER, AS this.geometry SOMEHOW IS NOT 
 				// KNOWN IN THE function BELOW
-				if (parseInt(amount*4) > 3){
-					// REMOVE CURRENT OBJECT
-					viz.scene.remove(viz.scene.getObjectByName("ParametricCube"));
-					this.smoothGeometry = undefined;
-					this.generateMesh();
-					this.geometry.verticesNeedUpdate = true;
-					this.geometry.colorsNeedUpdate = true
+				var geometry = this.geometry;
 
-					// ADD NEW OBJECT
-					viz.scene.add(this.mesh);
+				this.geometry.inner.forEach(function(d){
+					geometry.vertices[d.inner].copy( 
+						d.center.lerp(geometry.vertices[d.outer], amount)
+					);
+				});
 
-				} else {
-					modifier = new THREE.SubdivisionModifier( 3-parseInt(amount*4) );
-					this.smoothGeometry = this.subdivideRigid(this.geometry.clone(), parseInt(amount*4));
+				// UPDATE MESH + NORMALS
+				if (this.smooth != undefined) 
 					this.smooth();
-				}
-				
+				this.generateMesh();
+				this.geometry.verticesNeedUpdate = true;
+				this.geometry.colorsNeedUpdate = true
 			};
 
 			this.generateMesh = function () {
@@ -262,36 +230,31 @@
 					this.mesh.material = this.material;
 			}
 
+
+
 			this.smooth = function () {
 
 				// REMOVE CURRENT OBJECT
 				viz.scene.remove(viz.scene.getObjectByName("ParametricCube"));
 
 				// BUILT NEW OBJECT
-				if (this.smoothGeometry == undefined)
-					this.smoothGeometry = this.geometry.clone();
-
-				var tmp = new THREE.Geometry();
-				tmp.vertices = this.smoothGeometry.vertices;
-				tmp.faces = this.smoothGeometry.faces;
-				tmp.inner = this.smoothGeometry.inner;
+				var tmp = new THREE.Geometry().clone();
+				tmp.vertices = this.geometry.vertices;
+				tmp.faces = this.geometry.faces;
+				tmp.inner = this.geometry.inner;
 
 				// MAKE IT SMOOTH	
 				modifier.modify(tmp);
 				this.smoothGeometry = tmp;
 				this.generateMesh();
-				this.geometry.verticesNeedUpdate = true;
-				this.geometry.colorsNeedUpdate = true
 
 				// ADD NEW OBJECT
 				viz.scene.add(this.mesh);
 			};
 
 			// SET OBJECTS GEOMETRY + MESH
-			this.geometry = new THREE.BoxGeometry(2,2,2);
-			this.smoothGeometry = this.subdivideRigid(this.geometry.clone(), 1);
-			modifier.modify(this.smoothGeometry);
-
+			this.geometry = this.getInnerGeometry(new THREE.BoxGeometry(2,2,2));
+			this.smoothGeometry = undefined;
 			this.mesh = this.generateMesh();
 			this.setMaterial();
 		}
