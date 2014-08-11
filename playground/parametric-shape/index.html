@@ -44,6 +44,21 @@
 		});
 
 		//GLOBAL STUFF
+
+		//ROUGHNESS-SHADER
+		var roughTexture = new THREE.ImageUtils.loadTexture("US_heightmap_500px.png");
+
+		var shader = THREE.ShaderLib[ "normalmap" ];
+		var uniforms = THREE.UniformsUtils.clone( shader.uniforms );
+
+		uniforms[ "enableDisplacement" ].value = true;
+		uniforms[ "enableDiffuse" ].value = true;
+		uniforms[ "tDisplacement" ].value = roughTexture;
+		uniforms[ "tDiffuse" ].value = roughTexture;
+		uniforms[ "uDisplacementScale" ].value = 50;
+
+		var parameters = { fragmentShader: shader.fragmentShader, vertexShader: shader.vertexShader, uniforms: uniforms, lights: true, wireframe: true };
+		var roughMaterial = new THREE.ShaderMaterial( parameters );
 		//MATERIALS
 		var  materials = {	normal: new THREE.MeshNormalMaterial(),
 							test: new THREE.MeshPhongMaterial( { color: 0x000000, specular: 0xffffff, emissive: 0xff0000, ambient: 0x000000, shininess: 10, shading: THREE.SmoothShading, opacity: 0.9, transparent: true } ),
@@ -60,6 +75,7 @@
 													shading: THREE.FlatShading, 
 													wireframe: true, 
 													transparent: true } ),
+							rough: roughMaterial,
 						}
 		var modifier = new THREE.SubdivisionModifier( 1 );
 		var minAngle = 1;//IN RADIANS
