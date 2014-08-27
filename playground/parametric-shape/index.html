@@ -56,7 +56,7 @@
 		uniforms[ "enableDiffuse" ].value = true;
 		uniforms[ "tDisplacement" ].value = roughTexture;
 		uniforms[ "tDiffuse" ].value = roughTexture;
-		uniforms[ "uDisplacementScale" ].value = 10;
+		uniforms[ "uDisplacementScale" ].value = 1;
 
 		var parameters = { fragmentShader: shader.fragmentShader, vertexShader: shader.vertexShader, uniforms: uniforms, lights: true, wireframe: true };
 
@@ -112,10 +112,11 @@
 			this.scene.add( this.parametricCube.mesh );
 
 			//BULLSHIT
-			var g = new THREE.PlaneGeometry(8, 9, 5, 10);
-			g.computeTangents();
+			/*var g = new THREE.PlaneGeometry(8, 9, 5, 10);
+			g = new THREE.BoxGeometry(5,5,5,5,5,5);
+			g.computeTangents();//absolutely necessary
   			var plane = new THREE.Mesh( g, roughMaterial);
-			this.scene.add(plane);
+			this.scene.add(plane);*/
 
 			// parameters for our shape
 			this.parameters = {
@@ -211,7 +212,7 @@
 
 				//GET NEIGHBOURS
 				this.smoothGeometry = geometry;
-				this.smoothGeometry.computeFaceNormals()
+				this.smoothGeometry.computeFaceNormals();
 				this.computeNeighbours();
 
 				//INIT NEW GEOMETRY - SUCH THAT VERTICES ARE NOT MIXED UP
@@ -321,14 +322,59 @@
 				
 			};
 
+			//SHIITY BULLSHIT
+			this.assignUVs = function( geometry ){
+
+    geometry.computeBoundingBox();
+
+    var max     = geometry.boundingBox.max;
+    var min     = geometry.boundingBox.min;
+
+    var offset  = new THREE.Vector2(0 - min.x, 0 - min.y);
+    var range   = new THREE.Vector2(max.x - min.x, max.y - min.y);
+
+    geometry.faceVertexUvs[0] = [];
+    var faces = geometry.faces;
+
+    for (i = 0; i < geometry.faces.length ; i++) {
+
+      var v1 = geometry.vertices[faces[i].a];
+      var v2 = geometry.vertices[faces[i].b];
+      var v3 = geometry.vertices[faces[i].c];
+
+      geometry.faceVertexUvs[0].push([
+        new THREE.Vector2( ( v1.x + offset.x ) / range.x , ( v1.y + offset.y ) / range.y ),
+        new THREE.Vector2( ( v2.x + offset.x ) / range.x , ( v2.y + offset.y ) / range.y ),
+        new THREE.Vector2( ( v3.x + offset.x ) / range.x , ( v3.y + offset.y ) / range.y )
+      ]);
+
+    }
+
+    geometry.uvsNeedUpdate = true;
+
+}
+
 			this.generateMesh = function () {
-				if (this.smoothGeometry != undefined){
-					this.smoothGeometry.computeFaceNormals();
-					this.mesh = new THREE.Mesh(this.smoothGeometry, this.material);
-				} else {
-					this.geometry.computeFaceNormals();
-					this.mesh = new THREE.Mesh(this.geometry, this.material);
+				if (this.smoothGeometry == undefined){
+					this.smoothGeometry = this.geometry.clone();
 				}
+					
+				this.smoothGeometry.computeFaceNormals();
+				this.mesh = new THREE.Mesh(this.smoothGeometry, this.material);
+
+				//BULLBOINKSHIT
+
+					//UVs workaround
+					this.assignUVs(this.geometry);
+					this.assignUVs(this.smoothGeometry);
+					console.log(this.smoothGeometry.faceVertexUvs);
+
+				// DOES NOT WORK DUE TO WRONGLY ASSIGNED UVs :/
+				//this.smoothGeometry.mergeVertices();
+				//this.smoothGeometry.computeFaceNormals();
+				//this.smoothGeometry.computeTangents();
+				//this.mesh = new THREE.Mesh(this.smoothGeometry, roughMaterial);
+				//console.log("rough");
 
 				if (self.scaleValue == undefined) self.scaleValue = 10;
 				if (self.ratioValue == undefined) self.ratioValue = .5;
@@ -342,12 +388,13 @@
 
 			this.setWireframe = function() {
 				this.material = materials.rough;//wired;
-				this.mesh.material = this.material;
+				this.mesh = this.generateMesh();
+				//this.mesh.material = this.material;
 			}
 
 			this.currentMaterial = 1;
 			this.switchMaterial = function() {
-				this.currentMaterial=(this.currentMaterial+1)%Object.keys(materials).length;
+				this.currentMaterial = (this.currentMaterial+1)%Object.keys(materials).length;
 				this.material = materials[Object.keys(materials)[this.currentMaterial]];
 				console.log(Object.keys(materials)[this.currentMaterial]);
 
@@ -417,8 +464,19 @@
 				if (viz != undefined) this.resetObject();
 			}
 
-			this.complexity(10)		
-			//modifier.modify(this.smoothGeometry);
+			/*this.roughen = function(value){
+				this.geometry.computeTangents();
+				this.mesh = new THREE.Mesh( this.geometry, roughMaterial);	
+			}*/
+
+			//BULLSHIT
+			//this.geometry = new THREE.BoxGeometry(5,5,5,5,5,5);
+			//this.geometry.computeTangents();//absolutely necessary
+  			//this.mesh = new THREE.Mesh(this.geometry, roughMaterial);
+		
+
+			this.complexity(10);
+			//this.roughen(10);
 			this.switchMaterial();
 		}
 
