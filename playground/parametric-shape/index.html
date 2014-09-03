@@ -362,16 +362,9 @@
 				this.smoothGeometry.computeFaceNormals();
 				this.mesh = new THREE.Mesh(this.smoothGeometry, this.material);
 
-				//BULLBOINKSHIT
-
-					//UVs workaround
-					this.assignUVs(this.geometry);
-					this.assignUVs(this.smoothGeometry);
-					console.log(this.smoothGeometry.faceVertexUvs);
-
 				// DOES NOT WORK DUE TO WRONGLY ASSIGNED UVs :/
-				//this.smoothGeometry.mergeVertices();
-				//this.smoothGeometry.computeFaceNormals();
+				this.smoothGeometry.mergeVertices();
+				this.smoothGeometry.computeFaceNormals();
 				//this.smoothGeometry.computeTangents();
 				//this.mesh = new THREE.Mesh(this.smoothGeometry, roughMaterial);
 				//console.log("rough");
