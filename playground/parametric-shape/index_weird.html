@@ -89,10 +89,12 @@
 
 			// parameters for our shape
 			this.parameters = {
-				  ratio :  0.0, scale : 0.0, 
+				  ratio :  0.0,
+				  scale : 0.0,
+				  roughness : 0.0,
 				  smooth : function() {
 				  	self.parametricCube.smooth();
-				  }, 
+				  },
 				  setWireframe : function() {
 				  	self.parametricCube.setWireframe();
 				  }, 
@@ -105,6 +107,7 @@
 			this.gui = new dat.GUI();
 			this.ratio = this.gui.add(this.parameters, 'ratio', 0, 1);
 			this.scale = this.gui.add(this.parameters, 'scale', 0, 1);
+			this.scale = this.gui.add(this.parameters, 'roughness', 0, 1);
 			this.scale = this.gui.add(this.parameters, 'smooth');
 			this.scale = this.gui.add(this.parameters, 'setWireframe');
 			this.scale = this.gui.add(this.parameters, 'setMaterial');
