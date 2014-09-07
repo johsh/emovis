@@ -1,0 +1,60 @@
+<html>
+<head>
+  	<script src="../../assets/js/three.min.js"></script>
+	<script src="../../assets/js/orbitcontrols.js"></script>
+</head>
+
+<body>
+</body>
+
+
+<script>
+
+  	// scene setup
+
+	var renderer = new THREE.WebGLRenderer({antialias: true});
+	renderer.setSize(document.body.clientWidth, document.body.clientHeight);
+	document.body.appendChild(renderer.domElement);
+
+	var scene = new THREE.Scene();
+
+	// CAMERA
+	
+	var fov = 45; // camera field-of-view in degrees
+	var width = renderer.domElement.width;
+	var height = renderer.domElement.height;
+	var aspect = width / height; // view aspect ratio
+	var camera = new THREE.PerspectiveCamera( fov, aspect );
+	
+	camera.position.z = -200;
+	camera.position.y = -400;
+	camera.lookAt(scene.position);
+
+	scene.controls = new THREE.OrbitControls( this.camera );
+	// LIGHTS
+
+	ambientLight = new THREE.AmbientLight( 0xffffff );
+	scene.add( ambientLight );
+
+	// GEOMETRY
+	
+	//geometry = new THREE.PlaneGeometry(500, 281, 500, 281);
+	geometry = new THREE.CubeGeometry( 100, 100, 100,2,2,2);
+	geometry.computeTangents();
+  
+	var plane = new THREE.Mesh( geometry, new THREE.MeshNormalMaterial());
+	plane.rotation.y = Math.PI;
+
+	scene.add(plane);
+
+	// FUNCTIONS
+	
+	function animate() {
+		requestAnimationFrame( animate );
+		renderer.render( scene, camera );
+	}
+
+	requestAnimationFrame( animate );
+	
+</script>
+</html>       
