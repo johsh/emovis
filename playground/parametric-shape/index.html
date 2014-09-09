@@ -414,6 +414,45 @@
 				viz.scene.add(this.mesh);
 			}
 
+			this.extrude = function (geometry) {
+				// DO STUFF //
+				var value = 1;
+
+				geometry.faces.forEach(function(face){
+					//if (Math.random() > .3) return;
+					var normal=face.normal.clone();
+					normal.multiplyScalar(value*Math.random());
+
+					var v1 = geometry.vertices[face.a].clone();
+					var v2 = geometry.vertices[face.b].clone();
+					var v3 = geometry.vertices[face.c].clone();
+
+					v1.add(normal);
+					v2.add(normal);
+					v3.add(normal);
+
+					var i=geometry.vertices.length;
+
+					geometry.vertices.push(v1);
+					geometry.vertices.push(v2);
+					geometry.vertices.push(v3);
+
+					geometry.faces.push(new THREE.Face3(face.a, face.b, i+1));
+					geometry.faces.push(new THREE.Face3(face.a, i+1, i));
+					geometry.faces.push(new THREE.Face3(face.b, face.c, i+2));
+					geometry.faces.push(new THREE.Face3(face.b, i+2, i+1));
+					geometry.faces.push(new THREE.Face3(face.c, face.a, i));
+					geometry.faces.push(new THREE.Face3(face.c, i, i+2));
+
+					geometry.faces.push(new THREE.Face3(i, i+1, i+2));
+					face = [];
+				});
+
+				geometry.mergeVertices();
+				geometry.computeFaceNormals();
+				// END DO STUFF //
+			}
+
 			this.smooth = function () {
 				// BUILT NEW OBJECT
 				if (this.smoothGeometry == undefined)
@@ -447,6 +486,8 @@
 					}
 					this.geometry = QuickHull(polyGeometry);
 				}
+				this.extrude(this.geometry);
+
 				this.smoothGeometry = this.subdivideRigid(this.geometry.clone(), 1);
 
 				this.mesh = this.generateMesh();
