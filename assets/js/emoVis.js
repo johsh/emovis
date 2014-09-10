@@ -58,7 +58,13 @@
 		parametricCube.castShadow = true;
 		parametricCube.receiveShadow = true;
 
-		scene.add( parametricCube.mesh );
+		//scene.add( parametricCube.mesh );
+
+
+//var sphere = new THREE.Mesh( geometry, materials.redClay );
+//scene.add( sphere );
+//sphere.position.set(0,8,2);
+		
 
 
 		/*var pgeometry = new THREE.PlaneGeometry( 20, 20 );
@@ -199,7 +205,7 @@
 
 		this.subdivideRigid = function(geometry, value){
 			for (var i=0; i<value;i++)
-				geometry=this._subdivideRigid(geometry);
+				;//geometry=this._subdivideRigid(geometry);
 			return geometry;
 		};
 
@@ -437,7 +443,8 @@
 
 		this.modifyComplexity = function () {
 			if (this.parameters.complexity*20 <= 1){
-				this.geometry = new THREE.BoxGeometry(1,1,1);
+				//this.geometry = new THREE.BoxGeometry(1,1,1);
+				this.geometry = new THREE.SphereGeometry( 1, 5, 3 );
 			} else {
 				//RANDOM POLYGON
 				var polyGeometry = new THREE.Geometry(); 
@@ -489,14 +496,14 @@
 		};
 
 		this.modifyExtrude = function(geometry){
-			//return;
-
 			// DO STUFF //
-			var value = .4;
+			var value = this.parameters.extrusion;
+			//if (value == 0) return;
+			value = 1;
 
 			geometry.faces.forEach(function(face){
 				var rnd = Math.random();
-				if (rnd < .3) return;
+				if (rnd < .5) return;
 
 				var normal=face.normal.clone();
 				normal.multiplyScalar(value*rnd);
@@ -526,8 +533,8 @@
 				face = [];//kill old face
 			});
 
-			//geometry.mergeVertices();
-			//geometry.computeFaceNormals();
+			geometry.mergeVertices();
+			geometry.computeFaceNormals();
 			// END DO STUFF //
 		}
 
