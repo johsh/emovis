@@ -124,7 +124,7 @@
 			  roughness : this.gui.add(this.parameters, 'roughness', 0, 1),
 			  switchMaterial : this.gui.add(this.parameters, 'switchMaterial'),
 			  setWireframe : this.gui.add(this.parameters, 'setWireframe'),
-			  vertexShadowMultiplier : this.gui.add(this.parameters, 'vertexShadowMultiplier', 0, 20)
+			  vertexShadowMultiplier : this.gui.add(this.parameters, 'vertexShadowMultiplier', 0, 5)
 
 		};
 
@@ -165,7 +165,7 @@
 				self.generateMesh();
 			}
 		);
-		
+
 		this.parameterBindings.vertexShadowMultiplier.onChange( 
 			function (value) {
 				self.generateMesh();
