@@ -18,6 +18,9 @@
 		renderer.setSize( $(window).innerWidth(), $(window).innerHeight() );
 		renderer.setClearColor( 0xffffff, 1 );
 
+		renderer.shadowMapEnabled = true;
+		renderer.shadowMapSoft = true;
+
 		shader = THREE.ShaderLib["normalmap"];
 		uniforms = THREE.UniformsUtils.clone( shader.uniforms );
 
@@ -44,9 +47,9 @@
 		};
 
 
-		pointLight = new THREE.PointLight(0xffffff);
+		pointLight = new THREE.DirectionalLight(0xffffff);
 		scene.add(pointLight);
-		pointLight.position.set(0, 0, -10);
+		pointLight.position.set(0, 0, 1);
 
 		camera.position.set(0, 0, 10);
 
@@ -59,8 +62,19 @@
 		// initialize the parametric cube
 		parametricCube = new ParametricCube();
 		parametricCube.generateMesh();
+		parametricCube.castShadow = true;
+		parametricCube.receiveShadow = true;
 
 		scene.add( parametricCube.mesh );
+
+
+		var pgeometry = new THREE.PlaneGeometry( 5, 20 );
+		var material = new THREE.MeshBasicMaterial( {color: 0xffff00, side: THREE.DoubleSide} );		
+		var plane = new THREE.Mesh( pgeometry, materials.redClay );
+		plane.position.set(0, 5, -5);
+		scene.add( plane );
+		plane.castShadow = true;
+		plane.receiveShadow = true;
 
 		theta=0.0;
 
@@ -70,7 +84,7 @@
 		// the rendering loop
 		function render() {
 			requestAnimationFrame( render ); 
-			theta+=0.1;
+			theta+=0.0;
 			//parametricCube.mesh.rotation.y += 0.01;
 			renderer.render(scene, camera);
 			pointLight.position.set(Math.sin(theta)*10, 0, Math.cos(theta)*10);
@@ -102,13 +116,13 @@
 		this.gui = new dat.GUI();
 
 		this.parameters = {
-			  smoothness: .5,
+			  smoothness: 0,
 			  ratio: .5, 
 			  scale: .5, 
-			  complexity: .5,
+			  complexity: 0,
 			  surface: .5,
 			  symmetrie: 0,
-			  roughness: 1.0,
+			  roughness: .2,
 
 			  setWireframe : function() {
 			  	this.setWireframe();
@@ -285,9 +299,13 @@
 			this.modifySmoothness();
 			this.modifyRoughness();
 
-
+			//UV shiat
 			this.smoothGeometry.mergeVertices();
-
+			this.smoothGeometry.computeFaceNormals();
+			assignUVs(this.smoothGeometry);
+			this.smoothGeometry.computeTangents();
+			//--//
+			
 			this.mesh = new THREE.Mesh(this.smoothGeometry, this.material);
 
 			this.modifyScale();
@@ -295,7 +313,7 @@
 
 			// DOES NOT WORK DUE TO WRONGLY ASSIGNED UVs :/
 
-			//this.smoothGeometry.computeTangents();
+
 			//this.mesh = new THREE.Mesh(this.smoothGeometry, roughMaterial);
 			//console.log("rough");
 
@@ -309,6 +327,54 @@
 
 		};
 
+
+		assignUVs = function( geometry ){
+
+		    geometry.computeBoundingBox();
+
+		    var max     = geometry.boundingBox.max;
+		    var min     = geometry.boundingBox.min;
+
+		    var offset  = new THREE.Vector2(0 - min.x, 0 - min.y);
+		    var range   = new THREE.Vector2(max.x - min.x, max.y - min.y);
+
+		    geometry.faceVertexUvs[0] = [];
+		    var faces = geometry.faces;
+
+		    for (i = 0; i < geometry.faces.length ; i++) {
+
+		      var v1 = geometry.vertices[faces[i].a];
+		      var v2 = geometry.vertices[faces[i].b];
+		      var v3 = geometry.vertices[faces[i].c];
+
+		      geometry.faceVertexUvs[0].push([
+		        new THREE.Vector2( ( v1.x + offset.x ) / range.x , ( v1.y + offset.y ) / range.y ),
+		        new THREE.Vector2( ( v2.x + offset.x ) / range.x , ( v2.y + offset.y ) / range.y ),
+		        new THREE.Vector2( ( v3.x + offset.x ) / range.x , ( v3.y + offset.y ) / range.y )
+		      ]);
+
+		    }
+
+		// modify UVs to accommodate MatCap texture
+			var faceVertexUvs = geometry.faceVertexUvs[ 0 ];
+			for ( i = 0; i < faceVertexUvs.length; i ++ ) {
+
+				var uvs = faceVertexUvs[ i ];
+				var face = geometry.faces[ i ];
+
+				for ( var j = 0; j < 3; j ++ ) {
+
+					uvs[ j ].x = face.vertexNormals[ j ].x * 0.5 + 0.5;
+					uvs[ j ].y = face.vertexNormals[ j ].y * 0.5 + 0.5;
+
+				}
+
+			}
+
+		    geometry.uvsNeedUpdate = true;
+		    geometry.computeTangents();
+		    geometry.computeFaceNormals();
+		}
 
 		/* updates the smoothness/edginess of our shape */
 		this.modifySmoothness = function() {
