@@ -26,28 +26,21 @@
 
 		/* Material & Shader */
 		materials = {
-			normal : new THREE.MeshNormalMaterial(),
-			test : new THREE.MeshPhongMaterial( { color: 0x000000, specular: 0xffffff, emissive: 0xff0000, ambient: 0x000000, shininess: 10, shading: THREE.SmoothShading, opacity: 0.9, transparent: true } ),
-			redClay : new THREE.MeshLambertMaterial( { color: 0x666666, emissive: 0xa00000, ambient: 0x000000, shading: THREE.SmoothShading } ),
-			greenGreySmooth : new THREE.MeshPhongMaterial( { ambient: 0x030303, color: 0xdddddd, specular: 0x009900, shininess: 30, shading: THREE.SmoothShading, transparent: true } ),
-			grey : new THREE.MeshLambertMaterial( { color: 0xdddddd, shading: THREE.SmoothShading } ),
-			greenBlack : new THREE.MeshPhongMaterial({
-				ambient: 0x2551311, 
-				color: 0x2493992, 
-				specular: 0x2551311, 
-				shininess: 255, 								
-				shading: THREE.SmoothShading
-			}),
-			wired : new THREE.MeshBasicMaterial({ 
+			normalMap : new THREE.MeshNormalMaterial({ shading: THREE.FlatShading }),
+			redPlastic : new THREE.MeshPhongMaterial( { color: 0x000000, specular: 0xffffff, emissive: 0xff0000, ambient: 0x000000, shininess: 100, shading: THREE.SmoothShading, vertexColors: THREE.VertexColors } ),
+			redClay : new THREE.MeshLambertMaterial( { color: 0x666666, shadow: 0x666666, emissive: 0xa00000, ambient: 0x000000, shading: THREE.SmoothShading, vertexColors: THREE.VertexColors } ),
+			wireFrame : new THREE.MeshBasicMaterial({ 
 				color: 0x000000, 
 				shading: THREE.FlatShading, 
 				wireframe: true, 
-				transparent: true 
+				transparent: true,
+				vertexColors: THREE.VertexColors 
 			}),			
 		};
 
+		pointLight = new THREE.PointLight(0xffffff);
+		pointLight.distance = 10.0;
 
-		pointLight = new THREE.DirectionalLight(0xffffff);
 		scene.add(pointLight);
 		pointLight.position.set(0, 0, 1);
 
@@ -84,10 +77,10 @@
 		// the rendering loop
 		function render() {
 			requestAnimationFrame( render ); 
-			theta+=0.0;
+			theta+=0.01;
 			//parametricCube.mesh.rotation.y += 0.01;
 			renderer.render(scene, camera);
-			pointLight.position.set(Math.sin(theta)*10, 0, Math.cos(theta)*10);
+			pointLight.position.set(Math.sin(theta)*5, Math.sin(theta)*5, Math.cos(theta)*5);
 		}
 		render();
 
@@ -106,6 +99,7 @@
 	function ParametricCube () {
 
 		self = this;
+		this.center = new THREE.Vector3(0.0, 0.0, 0.0);
 
 		// GET INNER GEOMETRY
 		//  ADDS VERTICES AND FACES, 
@@ -119,10 +113,12 @@
 			  smoothness: 0,
 			  ratio: .5, 
 			  scale: .5, 
-			  complexity: 0,
+
+			  complexity: .0,
 			  surface: .5,
 			  symmetrie: 0,
-			  roughness: .2,
+			  roughness: 1.0,
+			  vertexShadowMultiplier: 1.0,
 
 			  setWireframe : function() {
 			  	this.setWireframe();
@@ -142,7 +138,9 @@
 			  symmetrie : this.gui.add(this.parameters, 'symmetrie', 0, 1),
 			  roughness : this.gui.add(this.parameters, 'roughness', 0, 1),
 			  switchMaterial : this.gui.add(this.parameters, 'switchMaterial'),
-			  setWireframe : this.gui.add(this.parameters, 'setWireframe')
+			  setWireframe : this.gui.add(this.parameters, 'setWireframe'),
+			  vertexShadowMultiplier : this.gui.add(this.parameters, 'vertexShadowMultiplier', 0, 5)
+
 		};
 
 
@@ -178,6 +176,12 @@
 		);
 
 		this.parameterBindings.roughness.onChange( 
+			function (value) {
+				self.generateMesh();
+			}
+		);
+
+		this.parameterBindings.vertexShadowMultiplier.onChange( 
 			function (value) {
 				self.generateMesh();
 			}
@@ -298,6 +302,7 @@
 			this.modifyRatio();
 			this.modifySmoothness();
 			this.modifyRoughness();
+			//modifyComplexity();
 
 			//UV shiat
 			this.smoothGeometry.mergeVertices();
@@ -385,14 +390,14 @@
 				// REMOVE CURRENT OBJECT
 				scene.remove(scene.getObjectByName("ParametricCube"));
 				this.smoothGeometry = undefined;
-				this.smoothGeometry = this.subdivideRigid(this.geometry.clone(), 4);
+				this.smoothGeometry = this.subdivideRigid(this.geometry.clone(), 5);
 				this.geometry.verticesNeedUpdate = true;
 				this.geometry.colorsNeedUpdate = true
 				// ADD NEW OBJECT
 				scene.add(this.mesh);
 			} else {
-				modifier = new THREE.SubdivisionModifier( 4-parseInt(this.parameters.smoothness*4) );
-				this.smoothGeometry = this.subdivideRigid(this.geometry.clone(), parseInt(this.parameters.smoothness*4));
+				modifier = new THREE.SubdivisionModifier( 5-parseInt(this.parameters.smoothness*5) );
+				this.smoothGeometry = this.subdivideRigid(this.geometry.clone(), parseInt(this.parameters.smoothness*5));
 				this.smooth();
 			}
 		};
@@ -452,6 +457,7 @@
 		};
 
 		this.modifyRoughness = function (value) {
+
 			// compute the roughness and add it to the vertices
 			for (var i=0; i<this.smoothGeometry.vertices.length; i++) {
 				this.smoothGeometry.vertices[i].multiplyScalar( 1 +
@@ -460,6 +466,18 @@
 						this.smoothGeometry.vertices[i].z*50) * this.parameters.roughness  
 				);
 			}
+
+			for (var i=0; i<this.smoothGeometry.faces.length; i++) {
+
+				var da = this.smoothGeometry.vertices[this.smoothGeometry.faces[i].a].distanceTo(this.center)*this.parameters.vertexShadowMultiplier;
+				var db = this.smoothGeometry.vertices[this.smoothGeometry.faces[i].b].distanceTo(this.center)*this.parameters.vertexShadowMultiplier;
+				var dc = this.smoothGeometry.vertices[this.smoothGeometry.faces[i].c].distanceTo(this.center)*this.parameters.vertexShadowMultiplier;
+
+				this.smoothGeometry.faces[i].vertexColors.push(new THREE.Color(da, da, da));
+				this.smoothGeometry.faces[i].vertexColors.push(new THREE.Color(db, db, db));
+				this.smoothGeometry.faces[i].vertexColors.push(new THREE.Color(dc, dc, dc));
+			}
+
 		};
 
 		this.resetObject = function () {
@@ -495,4 +513,11 @@
 		this.currentMaterial = 1;
 		this.modifyComplexity();
 		this.switchMaterial();
+	}
+
+
+	function rgb2hex(r, g, b) {
+	    if (r > 255 || g > 255 || b > 255)
+	        throw "Invalid color component";
+	    return ((r << 16) | (g << 8) | b).toString(16);
 	}
