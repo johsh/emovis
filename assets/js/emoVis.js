@@ -124,7 +124,7 @@
 			  surface: .5,
 			  symmetrie: 0,
 			  roughness: 0,
-			  extrusion: 0,
+			  extrusion: .5,
 			  vertexShadowMultiplier: 1.6,
 
 			  setWireframe : function() {
@@ -191,6 +191,7 @@
 
 		this.parameterBindings.extrusion.onChange( 
 			function (value) {
+				self.modifyComplexity();
 				self.generateMesh();
 			}
 		);
@@ -205,7 +206,7 @@
 
 		this.subdivideRigid = function(geometry, value){
 			for (var i=0; i<value;i++)
-				;//geometry=this._subdivideRigid(geometry);
+				geometry=this._subdivideRigid(geometry);
 			return geometry;
 		};
 
@@ -330,17 +331,15 @@
 
 			// DOES NOT WORK DUE TO WRONGLY ASSIGNED UVs :/
 
-
 			//this.mesh = new THREE.Mesh(this.smoothGeometry, roughMaterial);
 			//console.log("rough");
-
 			this.mesh.name="ParametricCube";
-
-
-
 
 			// remove the old object from the renderer and add the new mesh
 			this.resetObject();
+
+			console.log("faces: "+this.smoothGeometry.faces.length);
+			console.log("vertices: "+this.smoothGeometry.vertices.length);
 
 		};
 
@@ -402,14 +401,14 @@
 				// REMOVE CURRENT OBJECT
 				scene.remove(scene.getObjectByName("ParametricCube"));
 				this.smoothGeometry = undefined;
-				this.smoothGeometry = this.subdivideRigid(this.geometry.clone(), 4);
+				this.smoothGeometry = this.subdivideRigid(this.geometry.clone(), 2);//HERE
 				this.geometry.verticesNeedUpdate = true;
 				this.geometry.colorsNeedUpdate = true
 				// ADD NEW OBJECT
 				scene.add(this.mesh);
 			} else {
 				modifier = new THREE.SubdivisionModifier( 5-parseInt(this.parameters.smoothness*5) );
-				this.smoothGeometry = this.subdivideRigid(this.geometry.clone(), parseInt(this.parameters.smoothness*4));
+				this.smoothGeometry = this.subdivideRigid(this.geometry.clone(), parseInt(this.parameters.smoothness*2));//HERE 4));
 				this.smooth();
 			}
 		};
@@ -482,7 +481,7 @@
 				);
 			}
 
-			for (var i=0; i<this.smoothGeometry.faces.length; i++) {
+			/*for (var i=0; i<this.smoothGeometry.faces.length; i++) {
 
 				var da = this.smoothGeometry.vertices[this.smoothGeometry.faces[i].a].distanceTo(this.center)*this.parameters.vertexShadowMultiplier;
 				var db = this.smoothGeometry.vertices[this.smoothGeometry.faces[i].b].distanceTo(this.center)*this.parameters.vertexShadowMultiplier;
@@ -491,22 +490,28 @@
 				this.smoothGeometry.faces[i].vertexColors.push(new THREE.Color(da, da, da));
 				this.smoothGeometry.faces[i].vertexColors.push(new THREE.Color(db, db, db));
 				this.smoothGeometry.faces[i].vertexColors.push(new THREE.Color(dc, dc, dc));
-			}
+			}*/
 
 		};
 
 		this.modifyExtrude = function(geometry){
 			// DO STUFF //
-			var value = this.parameters.extrusion;
+			var value = this.parameters.extrusion-.5;
 			//if (value == 0) return;
-			value = 1;
+			//value = .5;
 
-			geometry.faces.forEach(function(face){
-				var rnd = Math.random();
-				if (rnd < .5) return;
+			var newFaces = [];
+
+			geometry.faces.forEach(function(face,i){
+				var rnd = Math.abs(noise.simplex2(i,100));
+				console.log(rnd);
+				if (rnd < .4) {
+					newFaces.push(face);
+					return;
+				}
 
 				var normal=face.normal.clone();
-				normal.multiplyScalar(value*rnd);
+				normal.multiplyScalar(value*rnd*3);
 
 				var v1 = geometry.vertices[face.a].clone();
 				var v2 = geometry.vertices[face.b].clone();
@@ -522,17 +527,18 @@
 				geometry.vertices.push(v2);
 				geometry.vertices.push(v3);
 
-				geometry.faces.push(new THREE.Face3(face.a, face.b, i+1));
-				geometry.faces.push(new THREE.Face3(face.a, i+1, i));
-				geometry.faces.push(new THREE.Face3(face.b, face.c, i+2));
-				geometry.faces.push(new THREE.Face3(face.b, i+2, i+1));
-				geometry.faces.push(new THREE.Face3(face.c, face.a, i));
-				geometry.faces.push(new THREE.Face3(face.c, i, i+2));
+				newFaces.push(new THREE.Face3(face.a, face.b, i+1));
+				newFaces.push(new THREE.Face3(face.a, i+1, i));
+				newFaces.push(new THREE.Face3(face.b, face.c, i+2));
+				newFaces.push(new THREE.Face3(face.b, i+2, i+1));
+				newFaces.push(new THREE.Face3(face.c, face.a, i));
+				newFaces.push(new THREE.Face3(face.c, i, i+2));
 
-				geometry.faces.push(new THREE.Face3(i, i+1, i+2));
+				newFaces.push(new THREE.Face3(i, i+1, i+2));
 				face = [];//kill old face
 			});
 
+			geometry.faces = newFaces;
 			geometry.mergeVertices();
 			geometry.computeFaceNormals();
 			// END DO STUFF //
