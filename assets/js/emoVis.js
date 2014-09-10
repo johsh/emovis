@@ -1,4 +1,4 @@
-	var viz, renderer, scene, camera, controls, pointLight, modifier, minAngle, gui, shader, uniforms, materials, parametricCube;
+	var viz, renderer, scene, camera, controls, pointLight, modifier, minAngle, gui, shader, uniforms, materials, parametricCube, theta;
 
 	$(document).ready( function() {
 
@@ -44,9 +44,9 @@
 		};
 
 
-		pointLight = new THREE.DirectionalLight(0xffffff);
+		pointLight = new THREE.PointLight(0xffffff);
 		scene.add(pointLight);
-		pointLight.position.set(0, 0, 1);
+		pointLight.position.set(0, 0, -10);
 
 		camera.position.set(0, 0, 10);
 
@@ -62,14 +62,18 @@
 
 		scene.add( parametricCube.mesh );
 
+		theta=0.0;
+
 
 
 
 		// the rendering loop
 		function render() {
 			requestAnimationFrame( render ); 
-			parametricCube.mesh.rotation.y += 0.01;
-			renderer.render(scene, camera); 
+			theta+=0.1;
+			//parametricCube.mesh.rotation.y += 0.01;
+			renderer.render(scene, camera);
+			pointLight.position.set(Math.sin(theta)*10, 0, Math.cos(theta)*10);
 		}
 		render();
 
@@ -274,6 +278,7 @@
 
 			this.mesh = new THREE.Mesh(this.smoothGeometry, this.material);
 
+			this.smoothGeometry.computeFaceNormals();
 
 
 			this.modifyRatio();
@@ -282,7 +287,6 @@
 
 
 			this.smoothGeometry.mergeVertices();
-			this.smoothGeometry.computeFaceNormals();
 
 			this.mesh = new THREE.Mesh(this.smoothGeometry, this.material);
 
@@ -315,10 +319,9 @@
 				// REMOVE CURRENT OBJECT
 				scene.remove(scene.getObjectByName("ParametricCube"));
 				this.smoothGeometry = undefined;
-				this.generateMesh();
+				this.smoothGeometry = this.subdivideRigid(this.geometry.clone(), 4);
 				this.geometry.verticesNeedUpdate = true;
 				this.geometry.colorsNeedUpdate = true
-
 				// ADD NEW OBJECT
 				scene.add(this.mesh);
 			} else {
@@ -386,9 +389,9 @@
 			// compute the roughness and add it to the vertices
 			for (var i=0; i<this.smoothGeometry.vertices.length; i++) {
 				this.smoothGeometry.vertices[i].multiplyScalar( 1 +
-					noise.simplex3(this.smoothGeometry.vertices[i].x*this.parameters.scale*10,
-						this.smoothGeometry.vertices[i].y*this.parameters.scale*10,
-						this.smoothGeometry.vertices[i].z*this.parameters.scale*10) * this.parameters.roughness  
+					noise.simplex3(this.smoothGeometry.vertices[i].x*50,
+						this.smoothGeometry.vertices[i].y*50,
+						this.smoothGeometry.vertices[i].z*50) * this.parameters.roughness  
 				);
 			}
 		};
