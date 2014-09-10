@@ -28,7 +28,7 @@
 		materials = {
 			normalMap : new THREE.MeshNormalMaterial({ shading: THREE.FlatShading }),
 			redPlastic : new THREE.MeshPhongMaterial( { color: 0x000000, specular: 0xffffff, emissive: 0xff0000, ambient: 0x000000, shininess: 100, shading: THREE.SmoothShading, vertexColors: THREE.VertexColors } ),
-			redClay : new THREE.MeshLambertMaterial( { color: 0x666666, shadow: 0x666666, emissive: 0xa00000, ambient: 0x000000, shading: THREE.SmoothShading, vertexColors: THREE.VertexColors } ),
+			redClay : new THREE.MeshLambertMaterial( { color: 0x666666, shadow: 0x666666, emissive: 0xa00000, ambient: 0x000000, shading: THREE.FlatShading, vertexColors: THREE.VertexColors } ),
 			wireFrame : new THREE.MeshBasicMaterial({ 
 				color: 0x000000, 
 				shading: THREE.FlatShading, 
@@ -61,13 +61,13 @@
 		scene.add( parametricCube.mesh );
 
 
-		var pgeometry = new THREE.PlaneGeometry( 5, 20 );
+		/*var pgeometry = new THREE.PlaneGeometry( 20, 20 );
 		var material = new THREE.MeshBasicMaterial( {color: 0xffff00, side: THREE.DoubleSide} );		
 		var plane = new THREE.Mesh( pgeometry, materials.redClay );
 		plane.position.set(0, 5, -5);
 		scene.add( plane );
 		plane.castShadow = true;
-		plane.receiveShadow = true;
+		plane.receiveShadow = true;*/
 
 		theta=0.0;
 
@@ -110,15 +110,16 @@
 		this.gui = new dat.GUI();
 
 		this.parameters = {
-			  smoothness: 0,
+			  smoothness: 1,
 			  ratio: .5, 
 			  scale: .5, 
 
-			  complexity: .0,
+			  complexity: 0,
 			  surface: .5,
 			  symmetrie: 0,
-			  roughness: 1.0,
-			  vertexShadowMultiplier: 1.0,
+			  roughness: 0,
+			  extrusion: 0,
+			  vertexShadowMultiplier: 1.6,
 
 			  setWireframe : function() {
 			  	this.setWireframe();
@@ -136,7 +137,8 @@
 			  complexity : this.gui.add(this.parameters, 'complexity', 0, 1),
 			  surface : this.gui.add(this.parameters, 'surface', 0, 1),
 			  symmetrie : this.gui.add(this.parameters, 'symmetrie', 0, 1),
-			  roughness : this.gui.add(this.parameters, 'roughness', 0, 1),
+			  roughness : this.gui.add(this.parameters, 'roughness', 0, .3),
+			  extrusion : this.gui.add(this.parameters, 'extrusion', 0, 1),
 			  switchMaterial : this.gui.add(this.parameters, 'switchMaterial'),
 			  setWireframe : this.gui.add(this.parameters, 'setWireframe'),
 			  vertexShadowMultiplier : this.gui.add(this.parameters, 'vertexShadowMultiplier', 0, 5)
@@ -176,6 +178,12 @@
 		);
 
 		this.parameterBindings.roughness.onChange( 
+			function (value) {
+				self.generateMesh();
+			}
+		);
+
+		this.parameterBindings.extrusion.onChange( 
 			function (value) {
 				self.generateMesh();
 			}
@@ -294,21 +302,19 @@
 				this.smoothGeometry = this.geometry.clone();
 			}
 
-			this.mesh = new THREE.Mesh(this.smoothGeometry, this.material);
+			this.mesh = new THREE.Mesh(this.geometry, this.material);
 
 			this.smoothGeometry.computeFaceNormals();
-
 
 			this.modifyRatio();
 			this.modifySmoothness();
 			this.modifyRoughness();
-			//modifyComplexity();
 
 			//UV shiat
 			this.smoothGeometry.mergeVertices();
 			this.smoothGeometry.computeFaceNormals();
-			assignUVs(this.smoothGeometry);
-			this.smoothGeometry.computeTangents();
+			//assignUVs(this.smoothGeometry);
+			//this.smoothGeometry.computeTangents();
 			//--//
 			
 			this.mesh = new THREE.Mesh(this.smoothGeometry, this.material);
@@ -390,14 +396,14 @@
 				// REMOVE CURRENT OBJECT
 				scene.remove(scene.getObjectByName("ParametricCube"));
 				this.smoothGeometry = undefined;
-				this.smoothGeometry = this.subdivideRigid(this.geometry.clone(), 5);
+				this.smoothGeometry = this.subdivideRigid(this.geometry.clone(), 4);
 				this.geometry.verticesNeedUpdate = true;
 				this.geometry.colorsNeedUpdate = true
 				// ADD NEW OBJECT
 				scene.add(this.mesh);
 			} else {
 				modifier = new THREE.SubdivisionModifier( 5-parseInt(this.parameters.smoothness*5) );
-				this.smoothGeometry = this.subdivideRigid(this.geometry.clone(), parseInt(this.parameters.smoothness*5));
+				this.smoothGeometry = this.subdivideRigid(this.geometry.clone(), parseInt(this.parameters.smoothness*4));
 				this.smooth();
 			}
 		};
@@ -435,7 +441,7 @@
 			} else {
 				//RANDOM POLYGON
 				var polyGeometry = new THREE.Geometry(); 
-				for (var i=0; i<this.parameters.complexity*10*20; i++){
+				for (var i=0; i<this.parameters.complexity*20*10; i++){
 					var v = new THREE.Vector3(	1*(Math.random()-.5),
 												1*(Math.random()-.5),
 												1*(Math.random()-.5));
@@ -444,7 +450,9 @@
 				}
 				this.geometry = QuickHull(polyGeometry);
 			}
-			this.smoothGeometry = this.subdivideRigid(this.geometry.clone(), 1);
+			this.modifyExtrude(this.geometry);
+
+			//this.smoothGeometry = this.subdivideRigid(this.geometry.clone(), 1);
 
 			this.mesh = this.generateMesh();
 			/*
@@ -463,7 +471,7 @@
 				this.smoothGeometry.vertices[i].multiplyScalar( 1 +
 					noise.simplex3(this.smoothGeometry.vertices[i].x*50,
 						this.smoothGeometry.vertices[i].y*50,
-						this.smoothGeometry.vertices[i].z*50) * this.parameters.roughness  
+						this.smoothGeometry.vertices[i].z*50) * this.parameters.roughness
 				);
 			}
 
@@ -479,6 +487,49 @@
 			}
 
 		};
+
+		this.modifyExtrude = function(geometry){
+			//return;
+
+			// DO STUFF //
+			var value = .4;
+
+			geometry.faces.forEach(function(face){
+				var rnd = Math.random();
+				if (rnd < .3) return;
+
+				var normal=face.normal.clone();
+				normal.multiplyScalar(value*rnd);
+
+				var v1 = geometry.vertices[face.a].clone();
+				var v2 = geometry.vertices[face.b].clone();
+				var v3 = geometry.vertices[face.c].clone();
+
+				v1.add(normal);
+				v2.add(normal);
+				v3.add(normal);
+
+				var i=geometry.vertices.length;
+
+				geometry.vertices.push(v1);
+				geometry.vertices.push(v2);
+				geometry.vertices.push(v3);
+
+				geometry.faces.push(new THREE.Face3(face.a, face.b, i+1));
+				geometry.faces.push(new THREE.Face3(face.a, i+1, i));
+				geometry.faces.push(new THREE.Face3(face.b, face.c, i+2));
+				geometry.faces.push(new THREE.Face3(face.b, i+2, i+1));
+				geometry.faces.push(new THREE.Face3(face.c, face.a, i));
+				geometry.faces.push(new THREE.Face3(face.c, i, i+2));
+
+				geometry.faces.push(new THREE.Face3(i, i+1, i+2));
+				face = [];//kill old face
+			});
+
+			//geometry.mergeVertices();
+			//geometry.computeFaceNormals();
+			// END DO STUFF //
+		}
 
 		this.resetObject = function () {
 
