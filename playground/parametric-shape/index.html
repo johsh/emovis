@@ -26,6 +26,7 @@
 
 				viz = new emoVIZ();
 				document.body.appendChild( viz.renderer.domElement );
+				viz.renderer.shadowMapEnabled = true;
 
 				// LIGHT
 				//var light = new THREE.AmbientLight( 0x404040 );
@@ -519,6 +520,8 @@
 			this.complexity(10);
 			//this.roughen(10);
 			this.switchMaterial();
+			this.castShadow = true;
+			this.receiveShadow = true;
 		}
 
 		</script>
