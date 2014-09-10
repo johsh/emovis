@@ -1,4 +1,4 @@
-	var viz, renderer, scene, camera, controls, pointLight, modifier, minAngle, gui, shader, uniforms, materials, parametricCube;
+	var viz, renderer, scene, camera, controls, pointLight, modifier, minAngle, gui, shader, uniforms, materials, parametricCube, theta;
 
 	$(document).ready( function() {
 
@@ -46,12 +46,13 @@
 
 		pointLight = new THREE.PointLight(0xffffff);
 		scene.add(pointLight);
-		pointLight.position.set(10, 10, 10);
+		pointLight.position.set(0, 0, -10);
 
 		camera.position.set(0, 0, 10);
 
 		ratioValue = .5;
 		scaleValue = 10;
+
 
 		document.body.appendChild( renderer.domElement );
 
@@ -61,14 +62,18 @@
 
 		scene.add( parametricCube.mesh );
 
+		theta=0.0;
+
 
 
 
 		// the rendering loop
 		function render() {
 			requestAnimationFrame( render ); 
-			parametricCube.mesh.rotation.y += 0.01;
-			renderer.render(scene, camera); 
+			theta+=0.1;
+			//parametricCube.mesh.rotation.y += 0.01;
+			renderer.render(scene, camera);
+			pointLight.position.set(Math.sin(theta)*10, 0, Math.cos(theta)*10);
 		}
 		render();
 
@@ -273,14 +278,15 @@
 
 			this.mesh = new THREE.Mesh(this.smoothGeometry, this.material);
 
+			this.smoothGeometry.computeFaceNormals();
+
+
 			this.modifyRatio();
 			this.modifySmoothness();
 			this.modifyRoughness();
 
+
 			this.smoothGeometry.mergeVertices();
-			this.smoothGeometry.computeFaceNormals();
-			assignUVs(this.smoothGeometry);
-			this.smoothGeometry.computeTangents();
 
 			this.mesh = new THREE.Mesh(this.smoothGeometry, this.material);
 
@@ -303,36 +309,6 @@
 
 		};
 
-assignUVs = function( geometry ){
-
-    geometry.computeBoundingBox();
-
-    var max     = geometry.boundingBox.max;
-    var min     = geometry.boundingBox.min;
-
-    var offset  = new THREE.Vector2(0 - min.x, 0 - min.y);
-    var range   = new THREE.Vector2(max.x - min.x, max.y - min.y);
-
-    geometry.faceVertexUvs[0] = [];
-    var faces = geometry.faces;
-
-    for (i = 0; i < geometry.faces.length ; i++) {
-
-      var v1 = geometry.vertices[faces[i].a];
-      var v2 = geometry.vertices[faces[i].b];
-      var v3 = geometry.vertices[faces[i].c];
-
-      geometry.faceVertexUvs[0].push([
-        new THREE.Vector2( ( v1.x + offset.x ) / range.x , ( v1.y + offset.y ) / range.y ),
-        new THREE.Vector2( ( v2.x + offset.x ) / range.x , ( v2.y + offset.y ) / range.y ),
-        new THREE.Vector2( ( v3.x + offset.x ) / range.x , ( v3.y + offset.y ) / range.y )
-      ]);
-
-    }
-
-    geometry.uvsNeedUpdate = true;
-
-}
 
 		/* updates the smoothness/edginess of our shape */
 		this.modifySmoothness = function() {
@@ -342,11 +318,10 @@ assignUVs = function( geometry ){
 			if (parseInt(this.parameters.smoothness*4) > 3) {
 				// REMOVE CURRENT OBJECT
 				scene.remove(scene.getObjectByName("ParametricCube"));
-				this.generateMesh();
-				this.geometry.verticesNeedUpdate = true;
-				this.geometry.colorsNeedUpdate = true;
 				this.smoothGeometry = undefined;
-
+				this.smoothGeometry = this.subdivideRigid(this.geometry.clone(), 4);
+				this.geometry.verticesNeedUpdate = true;
+				this.geometry.colorsNeedUpdate = true
 				// ADD NEW OBJECT
 				scene.add(this.mesh);
 			} else {
@@ -414,9 +389,9 @@ assignUVs = function( geometry ){
 			// compute the roughness and add it to the vertices
 			for (var i=0; i<this.smoothGeometry.vertices.length; i++) {
 				this.smoothGeometry.vertices[i].multiplyScalar( 1 +
-					noise.simplex3(this.smoothGeometry.vertices[i].x*10,
-						this.smoothGeometry.vertices[i].y*10,
-						this.smoothGeometry.vertices[i].z*10) * this.parameters.roughness  
+					noise.simplex3(this.smoothGeometry.vertices[i].x*50,
+						this.smoothGeometry.vertices[i].y*50,
+						this.smoothGeometry.vertices[i].z*50) * this.parameters.roughness  
 				);
 			}
 		};
