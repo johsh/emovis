@@ -9,7 +9,7 @@
 
 
 		modifier = new THREE.SubdivisionModifier( 1 );
-		minAngle = 1;//IN RADIANS
+		minAngle = .1;//IN RADIANS
 
 		scene = new THREE.Scene();
 		camera = new THREE.PerspectiveCamera( 75, $(window).innerWidth() / $(window).innerHeight(), 0.1, 1000);
@@ -27,7 +27,7 @@
 		/* Material & Shader */
 		materials = {
 			normalMap : new THREE.MeshNormalMaterial({ shading: THREE.FlatShading }),
-			redPlastic : new THREE.MeshPhongMaterial( { color: 0x000000, specular: 0xffffff, emissive: 0xff0000, ambient: 0x000000, shininess: 100, shading: THREE.SmoothShading, vertexColors: THREE.VertexColors } ),
+			//redPlastic : new THREE.MeshPhongMaterial( { color: 0x000000, specular: 0xffffff, emissive: 0xff0000, ambient: 0x000000, shininess: 100, shading: THREE.SmoothShading, vertexColors: THREE.VertexColors } ),
 			redClay : new THREE.MeshLambertMaterial( { color: 0x666666, shadow: 0x666666, emissive: 0xa00000, ambient: 0x000000, shading: THREE.FlatShading, vertexColors: THREE.VertexColors } ),
 			wireFrame : new THREE.MeshBasicMaterial({ 
 				color: 0x000000, 
@@ -111,7 +111,7 @@
 		//  ADDS VERTICES AND FACES, 
 		//  AND INITS LIST .inner 
 		//  WHERE TRIPPLES (OUTER + INNER VERTEX, CENTER) ARE STORED
-		//	WHICH WILL BE USED FOR SETTING EDGINBESS IN set(amount)
+		//	WHICH WILL BE USED FOR SETTING EDGINESS IN set(amount)
 
 		this.gui = new dat.GUI();
 
@@ -124,7 +124,7 @@
 			  surface: .5,
 			  symmetrie: 0,
 			  roughness: 0,
-			  extrusion: .5,
+			  extrusion: .8,
 			  vertexShadowMultiplier: 1.6,
 
 			  setWireframe : function() {
@@ -215,7 +215,7 @@
 			//GET NEIGHBOURS
 			this.smoothGeometry = geometry;
 			this.smoothGeometry.computeFaceNormals();
-			this.computeNeighbours();
+			this.computeNeighbours(geometry);
 
 			//INIT NEW GEOMETRY - SUCH THAT VERTICES ARE NOT MIXED UP
 			var tmp = new THREE.Geometry();
@@ -274,8 +274,9 @@
 			return tmp;
 		};
 
-		this.computeNeighbours = function(){
-			var geometry = this.geometry;
+		this.computeNeighbours = function(geometry){
+			//var geometry = this.geometry;
+			geometry.mergeVertices();
 
 			// GET NEIGHBOURS
 			geometry.faces.forEach(function(face,i){
@@ -441,6 +442,8 @@
 		}
 
 		this.modifyComplexity = function () {
+			console.log("modify complexity");
+
 			if (this.parameters.complexity*20 <= 1){
 				//this.geometry = new THREE.BoxGeometry(1,1,1);
 				this.geometry = new THREE.SphereGeometry( 1, 5, 3 );
@@ -495,27 +498,40 @@
 		};
 
 		this.modifyExtrude = function(geometry){
+			console.log("doo wapp");
+			var weirdRndValue = .49;
 			// DO STUFF //
 			var value = this.parameters.extrusion-.5;
 			//if (value == 0) return;
 			//value = .5;
 
+			this.computeNeighbours(geometry);
 			var newFaces = [];
 
 			geometry.faces.forEach(function(face,i){
-				var rnd = Math.abs(noise.simplex2(i,100));
-				console.log(rnd);
-				if (rnd < .4) {
+				face.rnd = Math.abs(noise.simplex2(i,100));
+			})
+
+			geometry.faces.forEach(function(face,i){
+				console.log("neighbours");
+				console.log(face.neighbours);
+
+				if (face.rnd < weirdRndValue) {
 					newFaces.push(face);
 					return;
 				}
 
 				var normal=face.normal.clone();
-				normal.multiplyScalar(value*rnd*3);
+				normal.multiplyScalar(value*face.rnd*3);
 
 				var v1 = geometry.vertices[face.a].clone();
 				var v2 = geometry.vertices[face.b].clone();
 				var v3 = geometry.vertices[face.c].clone();
+
+				var centre = v1.clone();
+				centre.add(v2);
+				centre.add(v3);
+				centre.multiplyScalar(1/3);
 
 				v1.add(normal);
 				v2.add(normal);
@@ -527,12 +543,32 @@
 				geometry.vertices.push(v2);
 				geometry.vertices.push(v3);
 
-				newFaces.push(new THREE.Face3(face.a, face.b, i+1));
-				newFaces.push(new THREE.Face3(face.a, i+1, i));
-				newFaces.push(new THREE.Face3(face.b, face.c, i+2));
-				newFaces.push(new THREE.Face3(face.b, i+2, i+1));
-				newFaces.push(new THREE.Face3(face.c, face.a, i));
-				newFaces.push(new THREE.Face3(face.c, i, i+2));
+				if (face.rnd > weirdRndValue && 
+					face.neighbours.ab.rnd > weirdRndValue &&
+					face.neighbours.ab.normal.angleTo(face.normal) < minAngle){
+					face.neighbours.ab.rnd = face.rnd;
+				} else {				
+					newFaces.push(new THREE.Face3(face.a, face.b, i+1));
+					newFaces.push(new THREE.Face3(face.a, i+1, i));
+				}
+
+				if (face.rnd > weirdRndValue && 
+					face.neighbours.bc.rnd > weirdRndValue &&
+					face.neighbours.bc.normal.angleTo(face.normal) < minAngle){
+					face.neighbours.bc.rnd = face.rnd;
+				} else {
+					newFaces.push(new THREE.Face3(face.b, face.c, i+2));
+					newFaces.push(new THREE.Face3(face.b, i+2, i+1));
+				}
+				
+				if (face.rnd > weirdRndValue && 
+					face.neighbours.ac.rnd > weirdRndValue &&
+					face.neighbours.ac.normal.angleTo(face.normal) < minAngle){
+					face.neighbours.ac.rnd = face.rnd;
+				} else {
+					newFaces.push(new THREE.Face3(face.c, face.a, i));
+					newFaces.push(new THREE.Face3(face.c, i, i+2));
+				}
 
 				newFaces.push(new THREE.Face3(i, i+1, i+2));
 				face = [];//kill old face
@@ -574,7 +610,7 @@
 			//if (viz != undefined) this.resetObject();
 		};
 
-		this.currentMaterial = 1;
+		this.currentMaterial = 2;
 		this.modifyComplexity();
 		this.switchMaterial();
 	}
