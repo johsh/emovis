@@ -1,4 +1,5 @@
-	var viz, renderer, scene, camera, controls, pointLight, modifier, minAngle, gui, shader, uniforms, materials, parametricCube, theta;
+	var viz, renderer, scene, camera, controls, pointLight, modifier, minAngle, gui, shader, uniforms, materials, parametricCube, theta, texture;
+
 
 	$(document).ready( function() {
 
@@ -24,25 +25,40 @@
 		shader = THREE.ShaderLib["normalmap"];
 		uniforms = THREE.UniformsUtils.clone( shader.uniforms );
 
+
+		texture = THREE.ImageUtils.loadTexture('../../assets/images/porosity-alpha.png');
+		console.time("load");
+
+
 		/* Material & Shader */
 		materials = {
 			normalMap : new THREE.MeshNormalMaterial({ shading: THREE.FlatShading }),
 			//redPlastic : new THREE.MeshPhongMaterial( { color: 0x000000, specular: 0xffffff, emissive: 0xff0000, ambient: 0x000000, shininess: 100, shading: THREE.SmoothShading, vertexColors: THREE.VertexColors } ),
 			redClay : new THREE.MeshLambertMaterial( { color: 0x666666, shadow: 0x666666, emissive: 0xa00000, ambient: 0x000000, shading: THREE.FlatShading, vertexColors: THREE.VertexColors } ),
-			wireFrame : new THREE.MeshBasicMaterial({ 
-				color: 0x000000, 
-				shading: THREE.FlatShading, 
-				wireframe: true, 
+			wireFrame : new THREE.MeshBasicMaterial({
+				color: 0x000000,
+				shading: THREE.FlatShading,
+				wireframe: true,
 				transparent: true,
-				vertexColors: THREE.VertexColors 
-			}),			
+				vertexColors: THREE.VertexColors
+			}),
+			porosity : new THREE.MeshLambertMaterial(
+				{
+					side : THREE.DoubleSide,
+					depthWrite:false,
+					map: texture,
+					alphaMap: texture,
+					shading: THREE.FlatShading,
+					transparent: true,
+					color:0xffffff
+				})
 		};
 
 		pointLight = new THREE.PointLight(0xffffff);
-		pointLight.distance = 10.0;
+		// pointLight.distance = 10.0;
 
 		scene.add(pointLight);
-		pointLight.position.set(0, 0, 1);
+		pointLight.position.set(0, 10, 10);
 
 		camera.position.set(0, 0, 10);
 
@@ -64,11 +80,11 @@
 //var sphere = new THREE.Mesh( geometry, materials.redClay );
 //scene.add( sphere );
 //sphere.position.set(0,8,2);
-		
+
 
 
 		/*var pgeometry = new THREE.PlaneGeometry( 20, 20 );
-		var material = new THREE.MeshBasicMaterial( {color: 0xffff00, side: THREE.DoubleSide} );		
+		var material = new THREE.MeshBasicMaterial( {color: 0xffff00, side: THREE.DoubleSide} );
 		var plane = new THREE.Mesh( pgeometry, materials.redClay );
 		plane.position.set(0, 5, -5);
 		scene.add( plane );
@@ -82,13 +98,17 @@
 
 		// the rendering loop
 		function render() {
-			requestAnimationFrame( render ); 
+			requestAnimationFrame( render );
 			theta+=0.01;
 			//parametricCube.mesh.rotation.y += 0.01;
 			renderer.render(scene, camera);
-			pointLight.position.set(Math.sin(theta)*5, Math.sin(theta)*5, Math.cos(theta)*5);
+			//pointLight.position.set(Math.sin(theta)*5, Math.sin(theta)*5, Math.cos(theta)*5);
 		}
-		render();
+
+	    $(window).load(function() {
+					console.timeEnd("load");
+	        render();
+	    });
 
 
 
@@ -108,8 +128,8 @@
 		this.center = new THREE.Vector3(0.0, 0.0, 0.0);
 
 		// GET INNER GEOMETRY
-		//  ADDS VERTICES AND FACES, 
-		//  AND INITS LIST .inner 
+		//  ADDS VERTICES AND FACES,
+		//  AND INITS LIST .inner
 		//  WHERE TRIPPLES (OUTER + INNER VERTEX, CENTER) ARE STORED
 		//	WHICH WILL BE USED FOR SETTING EDGINESS IN set(amount)
 
@@ -117,19 +137,19 @@
 
 		this.parameters = {
 			  smoothness: 1,
-			  ratio: .5, 
-			  scale: .5, 
-
+			  ratio: .5,
+			  scale: .5,
 			  complexity: 0,
 			  surface: .5,
 			  symmetrie: 0,
 			  roughness: 0,
-			  extrusion: .8,
+			  extrusion: 0.0,
 			  vertexShadowMultiplier: 1.6,
+			  porosity: 0.1,
 
 			  setWireframe : function() {
 			  	this.setWireframe();
-			  }, 
+			  },
 			  switchMaterial : function() {
 			  	self.switchMaterial();
 			  }
@@ -138,10 +158,11 @@
 		// this object hols the event bindings for every parameter
 		this.parameterBindings = {
 			  smoothness : this.gui.add(this.parameters, 'smoothness', 0, 1),
-			  ratio : this.gui.add(this.parameters, 'ratio', 0, 1), 
-			  scale : this.gui.add(this.parameters, 'scale', 0, 1), 
+			  ratio : this.gui.add(this.parameters, 'ratio', 0, 1),
+			  scale : this.gui.add(this.parameters, 'scale', 0, 1),
 			  complexity : this.gui.add(this.parameters, 'complexity', 0, 1),
 			  surface : this.gui.add(this.parameters, 'surface', 0, 1),
+			  porosity :  this.gui.add(this.parameters, 'porosity', 0, 1),
 			  symmetrie : this.gui.add(this.parameters, 'symmetrie', 0, 1),
 			  roughness : this.gui.add(this.parameters, 'roughness', 0, .3),
 			  extrusion : this.gui.add(this.parameters, 'extrusion', 0, 1),
@@ -183,20 +204,27 @@
 			}
 		);
 
-		this.parameterBindings.roughness.onChange( 
+		this.parameterBindings.porosity.onChange(
 			function (value) {
 				self.generateMesh();
 			}
 		);
 
-		this.parameterBindings.extrusion.onChange( 
+		this.parameterBindings.roughness.onChange(
+			function (value) {
+				self.generateMesh();
+			}
+		);
+
+
+		this.parameterBindings.extrusion.onChange(
 			function (value) {
 				self.modifyComplexity();
 				self.generateMesh();
 			}
 		);
 
-		this.parameterBindings.vertexShadowMultiplier.onChange( 
+		this.parameterBindings.vertexShadowMultiplier.onChange(
 			function (value) {
 				self.generateMesh();
 			}
@@ -242,15 +270,15 @@
 				var vB = geometry.vertices[b];
 				var vC = geometry.vertices[c];
 
-				//GET CENTERS	
-				var ab = tmp.vertices.length;				
-				var vAB = tmp.vertices.push(vA.clone().lerp(vB, .5));
+				//GET CENTERS
+				var ab = tmp.vertices.length;
+				var vAB = tmp.vertices.push(vA.clone().lerp(vB, 0.5));
 
-				var ac = tmp.vertices.length;				
-				var vAC = tmp.vertices.push(vA.clone().lerp(vC, .5));
+				var ac = tmp.vertices.length;
+				var vAC = tmp.vertices.push(vA.clone().lerp(vC, 0.5));
 
-				var bc = tmp.vertices.length;				
-				var vBC = tmp.vertices.push(vB.clone().lerp(vC, .5));
+				var bc = tmp.vertices.length;
+				var vBC = tmp.vertices.push(vB.clone().lerp(vC, 0.5));
 
 					//BUILT NEW FACES
 					/*
@@ -297,7 +325,7 @@
 					{
 						face.neighbours["bc"] = _face;
 					}
-				});	
+				});
 			});
 		};
 
@@ -321,14 +349,18 @@
 			//UV shiat
 			this.smoothGeometry.mergeVertices();
 			this.smoothGeometry.computeFaceNormals();
-			//assignUVs(this.smoothGeometry);
-			//this.smoothGeometry.computeTangents();
-			//--//
-			
+
+			this.smoothGeometry.faceVertexUvs = [[[]]];
+			for (var i=0; i<this.smoothGeometry.faces.length; i++) {
+				this.smoothGeometry.faceVertexUvs[0][i] = [new THREE.Vector2(1.0, 0.0), new THREE.Vector2(1.0, 0.0), new THREE.Vector2(1.0, 0.0)];
+			}
+
+			this.modifyPorosity();
+
+			this.smoothGeometry.uvsNeedUpdate = true;
+
 			this.mesh = new THREE.Mesh(this.smoothGeometry, this.material);
-
 			this.modifyScale();
-
 
 			// DOES NOT WORK DUE TO WRONGLY ASSIGNED UVs :/
 
@@ -396,7 +428,7 @@
 		/* updates the smoothness/edginess of our shape */
 		this.modifySmoothness = function() {
 
-			// JUST A HELPER, AS this.geometry SOMEHOW IS NOT 
+			// JUST A HELPER, AS this.geometry SOMEHOW IS NOT
 			// KNOWN IN THE function BELOW
 			if (parseInt(this.parameters.smoothness*4) > 3) {
 				// REMOVE CURRENT OBJECT
@@ -424,7 +456,7 @@
 			tmp.faces = this.smoothGeometry.faces;
 			tmp.inner = this.smoothGeometry.inner;
 
-			// MAKE IT SMOOTH	
+			// MAKE IT SMOOTH
 			modifier.modify(tmp);
 			this.smoothGeometry = tmp;
 		};
@@ -449,7 +481,7 @@
 				this.geometry = new THREE.SphereGeometry( 1, 5, 3 );
 			} else {
 				//RANDOM POLYGON
-				var polyGeometry = new THREE.Geometry(); 
+				var polyGeometry = new THREE.Geometry();
 				for (var i=0; i<this.parameters.complexity*20*10; i++){
 					var v = new THREE.Vector3(	1*(Math.random()-.5),
 												1*(Math.random()-.5),
@@ -465,8 +497,8 @@
 
 			this.mesh = this.generateMesh();
 			/*
-			this.mesh.scale.set(self.scaleValue*self.ratioValue, 
-			self.scaleValue*(1-self.ratioValue), 
+			this.mesh.scale.set(self.scaleValue*self.ratioValue,
+			self.scaleValue*(1-self.ratioValue),
 			self.scaleValue*self.ratioValue);
 			*/
 
@@ -495,6 +527,14 @@
 				this.smoothGeometry.faces[i].vertexColors.push(new THREE.Color(dc, dc, dc));
 			}*/
 
+		};
+
+
+
+		this.modifyPorosity = function (value) {
+			for (var i=0; i<this.smoothGeometry.faces.length; i++) {
+				this.smoothGeometry.faceVertexUvs[0][i][0] = new THREE.Vector2(this.parameters.porosity, 0.0);
+			}
 		};
 
 		this.modifyExtrude = function(geometry){
@@ -543,16 +583,16 @@
 				geometry.vertices.push(v2);
 				geometry.vertices.push(v3);
 
-				if (face.rnd > weirdRndValue && 
+				if (face.rnd > weirdRndValue &&
 					face.neighbours.ab.rnd > weirdRndValue &&
 					face.neighbours.ab.normal.angleTo(face.normal) < minAngle){
 					face.neighbours.ab.rnd = face.rnd;
-				} else {				
+				} else {
 					newFaces.push(new THREE.Face3(face.a, face.b, i+1));
 					newFaces.push(new THREE.Face3(face.a, i+1, i));
 				}
 
-				if (face.rnd > weirdRndValue && 
+				if (face.rnd > weirdRndValue &&
 					face.neighbours.bc.rnd > weirdRndValue &&
 					face.neighbours.bc.normal.angleTo(face.normal) < minAngle){
 					face.neighbours.bc.rnd = face.rnd;
@@ -560,8 +600,8 @@
 					newFaces.push(new THREE.Face3(face.b, face.c, i+2));
 					newFaces.push(new THREE.Face3(face.b, i+2, i+1));
 				}
-				
-				if (face.rnd > weirdRndValue && 
+
+				if (face.rnd > weirdRndValue &&
 					face.neighbours.ac.rnd > weirdRndValue &&
 					face.neighbours.ac.normal.angleTo(face.normal) < minAngle){
 					face.neighbours.ac.rnd = face.rnd;
