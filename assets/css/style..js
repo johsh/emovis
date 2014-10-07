@@ -8,6 +8,7 @@
 		// intialize the noise for the roughness
 		noise.seed(Math.random());
 
+
 		modifier = new THREE.SubdivisionModifier( 1 );
 		minAngle = .1;//IN RADIANS
 
@@ -15,8 +16,8 @@
 		camera = new THREE.PerspectiveCamera( 75, $(window).innerWidth() / $(window).innerHeight(), 0.1, 1000);
 		controls = new THREE.OrbitControls( camera );
 		renderer = new THREE.WebGLRenderer( { antialias: true } );
-		renderer.setSize( $(window).innerWidth()-10, $(window).innerHeight()-10 );
-		renderer.setClearColor( 0xfefefe, 1 );
+		renderer.setSize( $(window).innerWidth(), $(window).innerHeight() );
+		renderer.setClearColor( 0xffffff, 1 );
 
 		renderer.shadowMapEnabled = true;
 		renderer.shadowMapSoft = true;
@@ -29,21 +30,12 @@
 		texture = THREE.ImageUtils.loadTexture('../../assets/images/porosity-texture.png');
 		porosityTextures = [];
 
-
-		$(document).ready(function() {
-			$('.emotion-select-bar a').click(function() {
-				$('.emotion-select-bar a').removeClass('active');
-				$(this).addClass('active');
-				parametricCube.switchEmotion($(this).attr('href'));
-//				parametricCube.switchEmotion()
-			});
-		});
-
-		/* this loop loads the textures used by the porosity-parameter */
 		for (var i=0; i<10; i++) {
 			porosityTextures.push(THREE.ImageUtils.loadTexture('../../assets/images/porosity-texture_'+i+'.png'));
-			porosityTextures[i].ansitropy = renderer.getMaxAnisotropy();
+			porosityTextures.ansitropy = renderer.getMaxAnisotropy();
 		}
+		console.time("load");
+
 
 		/* Material & Shader */
 		materials = {
@@ -72,17 +64,21 @@
 		// pointLight.distance = 10.0;
 
 		scene.add(pointLight);
-		pointLight.position.set(0, 10, 0);
+		pointLight.position.set(0, 10, 10);
+
 		camera.position.set(0, 0, 10);
 
+		ratioValue = .5;
+		scaleValue = 10;
 
-		document.body.appendChild( renderer.domElement);
+
+		document.body.appendChild( renderer.domElement );
 
 		// initialize the parametric cube
 		parametricCube = new ParametricCube();
 		parametricCube.generateMesh();
 		parametricCube.castShadow = true;
-		//parametricCube.receiveShadow = true;
+		parametricCube.receiveShadow = true;
 
 		//scene.add( parametricCube.mesh );
 
@@ -112,7 +108,7 @@
 			theta+=0.1;
 			//parametricCube.mesh.rotation.y += 0.01;
 			renderer.render(scene, camera);
-			//pointLight.position.set(Math.sin(theta)*5, 0, Math.cos(theta)*5);
+			pointLight.position.set(Math.sin(theta)*5, 0, Math.cos(theta)*5);
 		}
 
 	    $(window).load(function() {
@@ -133,7 +129,6 @@
 
 	//PARAMETRIC CUBES
 	function ParametricCube () {
-
 
 		self = this;
 		this.center = new THREE.Vector3(0.0, 0.0, 0.0);
@@ -166,47 +161,21 @@
 			  }
 		};
 
-		/* this tupid functions returns all the values of the current parameters as object because javscript automatically would reference them */
-		this.extractParameterValues = function () {
-			return {
-				'smoothness' : this.parameters.smoothness,
-				'porosity' : this.parameters.porosity,
-				'ratio' : this.parameters.ratio,
-				'scale' : this.parameters.scale,
-				'roughness' : this.parameters.roughness,
-				'extrusion' : this.parameters.extrusion
-			};
-		}
-
-
-		/* this keeps all the parameters for each emotion */
-		this.emotionValues = {
-			"anger": this.extractParameterValues(),
-			"disgust": this.extractParameterValues(),
-			"fear": this.extractParameterValues(),
-			"joy": this.extractParameterValues(),
-			"suprise": this.extractParameterValues(),
-			"despise": this.extractParameterValues(),
-			"sadness": this.extractParameterValues()
-		};
-
-		/* the currently selected emotion */
-		this.currentEmotion = "anger";
-
 		// this object hols the event bindings for every parameter
 		this.parameterBindings = {
-			  smoothness : this.gui.add(this.parameters, 'smoothness', 0, 1).listen(),
-			  ratio : this.gui.add(this.parameters, 'ratio', 0, 1).listen(),
-			  scale : this.gui.add(this.parameters, 'scale', 0, 1).listen(),
-			  complexity : this.gui.add(this.parameters, 'complexity', 0, 1).listen(),
-			  surface : this.gui.add(this.parameters, 'surface', 0, 1).listen(),
-			  porosity :  this.gui.add(this.parameters, 'porosity', 0.0, 1.0).listen(),
-			  symmetrie : this.gui.add(this.parameters, 'symmetrie', 0, 1).listen(),
-			  roughness : this.gui.add(this.parameters, 'roughness', 0, .1).listen(),
-			  extrusion : this.gui.add(this.parameters, 'extrusion', 0, 1).listen(),
-			  vertexShadowMultiplier : this.gui.add(this.parameters, 'vertexShadowMultiplier', 0, 5).listen(),
-				switchMaterial : this.gui.add(this.parameters, 'switchMaterial'),
-				setWireframe : this.gui.add(this.parameters, 'setWireframe')
+			  smoothness : this.gui.add(this.parameters, 'smoothness', 0, 1),
+			  ratio : this.gui.add(this.parameters, 'ratio', 0, 1),
+			  scale : this.gui.add(this.parameters, 'scale', 0, 1),
+			  complexity : this.gui.add(this.parameters, 'complexity', 0, 1),
+			  surface : this.gui.add(this.parameters, 'surface', 0, 1),
+			  porosity :  this.gui.add(this.parameters, 'porosity', 0.0, 1.0),
+			  symmetrie : this.gui.add(this.parameters, 'symmetrie', 0, 1),
+			  roughness : this.gui.add(this.parameters, 'roughness', 0, .1),
+			  extrusion : this.gui.add(this.parameters, 'extrusion', 0, 1),
+			  switchMaterial : this.gui.add(this.parameters, 'switchMaterial'),
+			  setWireframe : this.gui.add(this.parameters, 'setWireframe'),
+			  vertexShadowMultiplier : this.gui.add(this.parameters, 'vertexShadowMultiplier', 0, 5)
+
 		};
 
 
@@ -267,25 +236,6 @@
 			}
 		);
 
-
-		this.switchEmotion = function (hashtag) {
-			// save the values
-
-			this.emotionValues[this.currentEmotion] = this.extractParameterValues();
-			console.log(this.extractParameterValues());
-			// update current emotion
-			this.currentEmotion = hashtag.replace("#edit-", "");
-			// copy the existing values to the sliders
-
-			this.parameters.porosity = this.emotionValues[this.currentEmotion].porosity;
-			this.parameters.ratio = this.emotionValues[this.currentEmotion].ratio;
-			this.parameters.scale = this.emotionValues[this.currentEmotion].scale;
-			this.parameters.roughness = this.emotionValues[this.currentEmotion].roughness;
-			this.parameters.extrusion = this.emotionValues[this.currentEmotion].extrusion;
-			this.parameters.smoothness = this.emotionValues[this.currentEmotion].smoothness;
-			// regenerate the mesh with the updated values
-			this.generateMesh();
-		};
 
 
 		this.subdivideRigid = function(geometry, value){

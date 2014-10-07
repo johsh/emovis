@@ -1,4 +1,41 @@
 body {
+	font-family: 'Dosis', sans-serif;
+}
+
+
+canvas {
+		position:absolute;
+		z-index:0;
+		margin:0;
+		padding:0;
+		border:0;
+}
+
+div.emotion-select-bar {
+	width:100%;
+	position:absolute;
+	bottom:0;
+	left:0;
+	z-index:1;
+	margin:0;
+	padding:10px 0 0 0;
+	background-color:#fff;
+	border-top:1px solid #ccc;
+}
+
+.emotion-select-bar a {
+	color:#000;
+	text-decoration:none;
+	width:14.28%;
+	height:50px;
+	float:left;
+	display:block;
 	padding:0;
 	margin:0;
+	text-align: center;
+	border-bottom:10px solid #fff;
+}
+
+.emotion-select-bar a.active {
+	border-bottom:10px solid #000;
 }
