@@ -26,7 +26,13 @@
 		uniforms = THREE.UniformsUtils.clone( shader.uniforms );
 
 
-		texture = THREE.ImageUtils.loadTexture('../../assets/images/porosity-alpha.png');
+		alpha = THREE.ImageUtils.loadTexture('../../assets/images/porosity-alpha.png');
+		texture = THREE.ImageUtils.loadTexture('../../assets/images/porosity-texture.png');
+		porosityTextures = [];
+
+		for (var i=0; i<10; i++) {
+			porosityTextures.push(THREE.ImageUtils.loadTexture('../../assets/images/porosity-texture_'+i+'.png'));
+		}
 		console.time("load");
 
 
@@ -42,15 +48,14 @@
 				transparent: true,
 				vertexColors: THREE.VertexColors
 			}),
-			porosity : new THREE.MeshLambertMaterial(
-				{
+			porosity : new THREE.MeshLambertMaterial({
 					side : THREE.DoubleSide,
-					depthWrite:false,
+					depthWrite:true,
+					depthTest:true,
 					map: texture,
-					alphaMap: texture,
+					alphaMap: alpha,
 					shading: THREE.FlatShading,
-					transparent: true,
-					color:0xffffff
+					transparent: true
 				})
 		};
 
@@ -100,7 +105,7 @@
 		function render() {
 			requestAnimationFrame( render );
 			theta+=0.01;
-			//parametricCube.mesh.rotation.y += 0.01;
+			parametricCube.mesh.rotation.y += 0.01;
 			renderer.render(scene, camera);
 			//pointLight.position.set(Math.sin(theta)*5, Math.sin(theta)*5, Math.cos(theta)*5);
 		}
@@ -145,7 +150,7 @@
 			  roughness: 0,
 			  extrusion: 0.0,
 			  vertexShadowMultiplier: 1.6,
-			  porosity: 0.1,
+			  porosity: 0.0,
 
 			  setWireframe : function() {
 			  	this.setWireframe();
@@ -162,9 +167,9 @@
 			  scale : this.gui.add(this.parameters, 'scale', 0, 1),
 			  complexity : this.gui.add(this.parameters, 'complexity', 0, 1),
 			  surface : this.gui.add(this.parameters, 'surface', 0, 1),
-			  porosity :  this.gui.add(this.parameters, 'porosity', 0, 1),
+			  porosity :  this.gui.add(this.parameters, 'porosity', 0.0, 1.0),
 			  symmetrie : this.gui.add(this.parameters, 'symmetrie', 0, 1),
-			  roughness : this.gui.add(this.parameters, 'roughness', 0, .3),
+			  roughness : this.gui.add(this.parameters, 'roughness', 0, .1),
 			  extrusion : this.gui.add(this.parameters, 'extrusion', 0, 1),
 			  switchMaterial : this.gui.add(this.parameters, 'switchMaterial'),
 			  setWireframe : this.gui.add(this.parameters, 'setWireframe'),
@@ -345,19 +350,14 @@
 			this.modifyRatio();
 			this.modifySmoothness();
 			this.modifyRoughness();
+			this.modifyPorosity();
 
 			//UV shiat
 			this.smoothGeometry.mergeVertices();
+			//this.smoothGeometry.computeFaceNormals();
+
+			//this.smoothGeometry.computeTangents();
 			this.smoothGeometry.computeFaceNormals();
-
-			this.smoothGeometry.faceVertexUvs = [[[]]];
-			for (var i=0; i<this.smoothGeometry.faces.length; i++) {
-				this.smoothGeometry.faceVertexUvs[0][i] = [new THREE.Vector2(1.0, 0.0), new THREE.Vector2(1.0, 0.0), new THREE.Vector2(1.0, 0.0)];
-			}
-
-			this.modifyPorosity();
-
-			this.smoothGeometry.uvsNeedUpdate = true;
 
 			this.mesh = new THREE.Mesh(this.smoothGeometry, this.material);
 			this.modifyScale();
@@ -532,9 +532,72 @@
 
 
 		this.modifyPorosity = function (value) {
+			this.smoothGeometry.faceVertexUvs = [[[]]];
 			for (var i=0; i<this.smoothGeometry.faces.length; i++) {
-				this.smoothGeometry.faceVertexUvs[0][i][0] = new THREE.Vector2(this.parameters.porosity, 0.0);
+
+				// this noise based random number defines which part of the texture is mapped… that helps to make it look more natural
+
+				var indexScrambler = noise.simplex2(i, this.smoothGeometry.faces.length);
+					if (indexScrambler < 0.125) {
+						this.smoothGeometry.faceVertexUvs[0][i] = [
+						new THREE.Vector2(0.0, 0.0),
+						new THREE.Vector2(0.5, 0.0),
+						new THREE.Vector2(0.0, 0.5)
+						];
+					}
+					if (indexScrambler > 0.125) {
+						this.smoothGeometry.faceVertexUvs[0][i] = [
+						new THREE.Vector2(0.5, 0.5),
+						new THREE.Vector2(0.0, 0.5),
+						new THREE.Vector2(0.5, 0.0)
+						];
+					}
+					if (indexScrambler > 0.25) {
+						this.smoothGeometry.faceVertexUvs[0][i] = [
+							new THREE.Vector2(0.5, 0.0),
+							new THREE.Vector2(1.0, 0.0),
+							new THREE.Vector2(0.5, 0.5)
+						];
+					}
+					if (indexScrambler > 0.375) {
+						this.smoothGeometry.faceVertexUvs[0][i] = [
+							new THREE.Vector2(1.0, 0.5),
+							new THREE.Vector2(0.5, 0.5),
+							new THREE.Vector2(1.0, 0.0)
+						];
+					}
+					if (indexScrambler > 0.5) {
+						this.smoothGeometry.faceVertexUvs[0][i] = [
+							new THREE.Vector2(0.0, 0.5),
+							new THREE.Vector2(0.5, 0.5),
+							new THREE.Vector2(0.0, 1.0)
+						];
+					}
+					if (indexScrambler > 0.625) {
+						this.smoothGeometry.faceVertexUvs[0][i] = [
+							new THREE.Vector2(0.5, 1.0),
+							new THREE.Vector2(0.0, 1.0),
+							new THREE.Vector2(0.5, 0.5)
+						];
+					}
+					if (indexScrambler > 0.75) {
+						this.smoothGeometry.faceVertexUvs[0][i] = [
+							new THREE.Vector2(0.5, 0.5),
+							new THREE.Vector2(1.0, 0.5),
+							new THREE.Vector2(0.5, 1.0)
+						];
+					}
+					if (indexScrambler > 0.875) {
+						this.smoothGeometry.faceVertexUvs[0][i] = [
+							new THREE.Vector2(1.0, 1.0),
+							new THREE.Vector2(0.5, 1.0),
+							new THREE.Vector2(1.0, 0.5)
+						];
+					}
 			}
+
+			materials.porosity.map = porosityTextures[parseInt(this.parameters.porosity*9)];
+			this.smoothGeometry.uvsNeedUpdate = true;
 		};
 
 		this.modifyExtrude = function(geometry){
