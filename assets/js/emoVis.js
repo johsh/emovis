@@ -13,7 +13,7 @@
 
 		scene = new THREE.Scene();
 		camera = new THREE.PerspectiveCamera( 75, $(window).innerWidth() / $(window).innerHeight(), 0.1, 1000);
-		controls = new THREE.OrbitControls( camera );
+		//controls = new THREE.OrbitControls( camera );
 		renderer = new THREE.WebGLRenderer( { antialias: true } );
 		renderer.setSize( $(window).innerWidth()-10, $(window).innerHeight()-10 );
 		renderer.setClearColor( 0xfefefe, 1 );
@@ -69,11 +69,21 @@
 		};
 
 		pointLight = new THREE.PointLight(0xffffff);
+		bottomPointLight = new THREE.PointLight(0xffffff);
+		leftPointLight = new THREE.PointLight(0xffffff);
+		rightPointLight = new THREE.PointLight(0xffffff);
+
 		// pointLight.distance = 10.0;
 
 		scene.add(pointLight);
-		pointLight.position.set(0, 10, 0);
-		camera.position.set(0, 0, 10);
+		scene.add(bottomPointLight);
+		//scene.add(leftPointLight);
+		//scene.add(rightPointLight);
+		pointLight.position.set(0, 10, 5);
+		bottomPointLight.position.set(0, -10, 5);
+		leftPointLight.position.set(-3, 0, 5);
+		rightPointLight.position.set(3, 0, 5);
+		camera.position.set(0, 0, 20);
 
 
 		document.body.appendChild( renderer.domElement);
@@ -109,8 +119,8 @@
 		// the rendering loop
 		function render() {
 			requestAnimationFrame( render );
-			theta+=0.1;
-			//parametricCube.mesh.rotation.y += 0.01;
+			theta += 0.005;
+			parametricCube.mesh.rotation.y = theta;
 			renderer.render(scene, camera);
 			//pointLight.position.set(Math.sin(theta)*5, 0, Math.cos(theta)*5);
 		}
@@ -198,15 +208,15 @@
 			  smoothness : this.gui.add(this.parameters, 'smoothness', 0, 1).listen(),
 			  ratio : this.gui.add(this.parameters, 'ratio', 0, 1).listen(),
 			  scale : this.gui.add(this.parameters, 'scale', 0, 1).listen(),
-			  complexity : this.gui.add(this.parameters, 'complexity', 0, 1).listen(),
-			  surface : this.gui.add(this.parameters, 'surface', 0, 1).listen(),
+			  //complexity : this.gui.add(this.parameters, 'complexity', 0, 1).listen(),
+			  //surface : this.gui.add(this.parameters, 'surface', 0, 1).listen(),
 			  porosity :  this.gui.add(this.parameters, 'porosity', 0.0, 1.0).listen(),
-			  symmetrie : this.gui.add(this.parameters, 'symmetrie', 0, 1).listen(),
+			  //symmetrie : this.gui.add(this.parameters, 'symmetrie', 0, 1).listen(),
 			  roughness : this.gui.add(this.parameters, 'roughness', 0, .1).listen(),
 			  extrusion : this.gui.add(this.parameters, 'extrusion', 0, 1).listen(),
-			  vertexShadowMultiplier : this.gui.add(this.parameters, 'vertexShadowMultiplier', 0, 5).listen(),
+			  //vertexShadowMultiplier : this.gui.add(this.parameters, 'vertexShadowMultiplier', 0, 5).listen(),
 				switchMaterial : this.gui.add(this.parameters, 'switchMaterial'),
-				setWireframe : this.gui.add(this.parameters, 'setWireframe')
+				//setWireframe : this.gui.add(this.parameters, 'setWireframe')
 		};
 
 
@@ -224,14 +234,6 @@
 				self.generateMesh();
 			}
 		);
-
-		this.parameterBindings.complexity.onChange(
-			function (value){
-				//var value=parseInt(value*20);
-				//self.complexity(value);
-				self.generateMesh();
-			}
-		)
 
 		this.parameterBindings.scale.onChange(
 			function (value) {
@@ -257,12 +259,6 @@
 		this.parameterBindings.extrusion.onChange(
 			function (value) {
 				self.modifyComplexity();
-				self.generateMesh();
-			}
-		);
-
-		this.parameterBindings.vertexShadowMultiplier.onChange(
-			function (value) {
 				self.generateMesh();
 			}
 		);
@@ -652,7 +648,6 @@
 		};
 
 		this.modifyExtrude = function(geometry){
-			console.log("doo wapp");
 			var weirdRndValue = .49;
 			// DO STUFF //
 			var value = this.parameters.extrusion-.5;
@@ -670,10 +665,10 @@
 				console.log("neighbours");
 				console.log(face.neighbours);
 
-				if (face.rnd < weirdRndValue) {
-					newFaces.push(face);
-					return;
-				}
+				// if (face.rnd < weirdRndValue) {
+				// 	newFaces.push(face);
+				// 	return;
+				// }
 
 				var normal=face.normal.clone();
 				normal.multiplyScalar(value*face.rnd*3);
