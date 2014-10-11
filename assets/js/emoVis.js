@@ -165,6 +165,7 @@
 			  symmetrie: 0,
 			  roughness: 0,
 			  extrusion: 0.5,
+			  sharpness: 0.5,
 			  vertexShadowMultiplier: 1.6,
 			  porosity: 0.0,
 
@@ -480,6 +481,11 @@
 
 				//adjust subdivision inverse to smoothing
 				this.smoothGeometry = this.subdivideRigid(this.smoothGeometry, 3-mappedSmoothness);
+
+				if (mappedSmoothness > 0){
+					this.smoothGeometry.computeFaceNormals();
+					this.smoothGeometry.computeVertexNormals();
+				}
 		};
 
 		this.smooth = function () {
@@ -639,7 +645,8 @@
 		this.modifyExtrude = function(geometry){
 			var weirdRndValue = .39;
 			// DO STUFF //
-			var value = this.parameters.extrusion-.5;
+			var value = this.parameters.extrusion*.66;
+			var sharpness = this.parameters.sharpness;
 			//if (value == 0) return;
 			//value = .5;
 
@@ -660,24 +667,83 @@
 				var normal=face.normal.clone();
 				normal.multiplyScalar(value*face.rnd*3);
 
+				// re-built main face
+
 				var v1 = geometry.vertices[face.a].clone();
 				var v2 = geometry.vertices[face.b].clone();
 				var v3 = geometry.vertices[face.c].clone();
 
-				var centre = v1.clone();
-				centre.add(v2);
-				centre.add(v3);
-				centre.multiplyScalar(1/3);
-
+				// extrude main face
+				
 				v1.add(normal);
 				v2.add(normal);
 				v3.add(normal);
+
+				// de-scale towards centre == SHARPNESS
+				var centre = v1.clone();
+				centre.add(v2);
+				centre.add(v3);
+				var scalar = 3;
+
+				if (face.rnd > weirdRndValue &&
+					face.neighbours.ab.rnd > weirdRndValue &&
+					face.neighbours.ab.normal.angleTo(face.normal) < minAngle){
+
+					centre.add( geometry.vertices[face.neighbours.ab.a] );
+					centre.add( geometry.vertices[face.neighbours.ab.b] );
+					centre.add( geometry.vertices[face.neighbours.ab.c] );
+
+					scalar += 3;
+				}
+
+				if (face.rnd > weirdRndValue &&
+					face.neighbours.bc.rnd > weirdRndValue &&
+					face.neighbours.bc.normal.angleTo(face.normal) < minAngle){
+					
+					centre.add( geometry.vertices[face.neighbours.bc.a] );
+					centre.add( geometry.vertices[face.neighbours.bc.b] );
+					centre.add( geometry.vertices[face.neighbours.bc.c] );
+
+					scalar += 3;
+				}
+
+				if (face.rnd > weirdRndValue &&
+					face.neighbours.ac.rnd > weirdRndValue &&
+					face.neighbours.ac.normal.angleTo(face.normal) < minAngle){
+
+					centre.add( geometry.vertices[face.neighbours.ac.a] );
+					centre.add( geometry.vertices[face.neighbours.ac.b] );
+					centre.add( geometry.vertices[face.neighbours.ac.c] );
+
+					scalar += 3;
+				}
+
+				centre.multiplyScalar(1/scalar);
+
+
+				var c1 = centre.clone();
+				c1.sub(v1);
+				c1.multiplyScalar(sharpness);
+				v1.add(c1);
+
+				var c2 = centre.clone();
+				c2.sub(v2);
+				c2.multiplyScalar(sharpness);
+				v2.add(c2);
+
+				var c3 = centre.clone();
+				c3.sub(v3);
+				c3.multiplyScalar(sharpness);
+				v3.add(c3);
 
 				var i=geometry.vertices.length;
 
 				geometry.vertices.push(v1);
 				geometry.vertices.push(v2);
 				geometry.vertices.push(v3);
+
+				// adjust neighbouring faces if necessary
+				// and add additional faces
 
 				if (face.rnd > weirdRndValue &&
 					face.neighbours.ab.rnd > weirdRndValue &&
