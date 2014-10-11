@@ -63,7 +63,7 @@
 					depthTest:true,
 					map: texture,
 					alphaMap: alpha,
-					shading: THREE.FlatShading,
+					shading: THREE.SmoothShading,// THREE.FlatShading,
 					transparent: true
 				})
 		};
@@ -157,14 +157,15 @@
 		this.gui = new dat.GUI();
 
 		this.parameters = {
-			  smoothness: 1,
+			  smoothness: 0,
 			  ratio: .5,
 			  scale: .5,
 			  complexity: 0,
 			  surface: .5,
 			  symmetrie: 0,
 			  roughness: 0,
-			  extrusion: 0.0,
+			  extrusion: 0.5,
+			  sharpness: 0.5,
 			  vertexShadowMultiplier: 1.6,
 			  porosity: 0.0,
 
@@ -175,6 +176,8 @@
 			  	self.switchMaterial();
 			  }
 		};
+
+		var mappedSmoothness = 0;
 
 		/* this tupid functions returns all the values of the current parameters as object because javscript automatically would reference them */
 		this.extractParameterValues = function () {
@@ -208,12 +211,13 @@
 			  smoothness : this.gui.add(this.parameters, 'smoothness', 0, 1).listen(),
 			  ratio : this.gui.add(this.parameters, 'ratio', 0, 1).listen(),
 			  scale : this.gui.add(this.parameters, 'scale', 0, 1).listen(),
-			  //complexity : this.gui.add(this.parameters, 'complexity', 0, 1).listen(),
+			  complexity : this.gui.add(this.parameters, 'complexity', 0, 1).listen(),
 			  //surface : this.gui.add(this.parameters, 'surface', 0, 1).listen(),
 			  porosity :  this.gui.add(this.parameters, 'porosity', 0.0, 1.0).listen(),
 			  //symmetrie : this.gui.add(this.parameters, 'symmetrie', 0, 1).listen(),
 			  roughness : this.gui.add(this.parameters, 'roughness', 0, .1).listen(),
 			  extrusion : this.gui.add(this.parameters, 'extrusion', 0, 1).listen(),
+			  sharpness : this.gui.add(this.parameters, 'sharpness', 0, 1).listen(),
 			  //vertexShadowMultiplier : this.gui.add(this.parameters, 'vertexShadowMultiplier', 0, 5).listen(),
 				switchMaterial : this.gui.add(this.parameters, 'switchMaterial'),
 				//setWireframe : this.gui.add(this.parameters, 'setWireframe')
@@ -255,8 +259,21 @@
 			}
 		);
 
-
 		this.parameterBindings.extrusion.onChange(
+			function (value) {
+				self.modifyComplexity();
+				self.generateMesh();
+			}
+		);
+
+		this.parameterBindings.complexity.onChange(
+			function (value) {
+				self.modifyComplexity();
+				self.generateMesh();
+			}
+		);
+
+		this.parameterBindings.sharpness.onChange(
 			function (value) {
 				self.modifyComplexity();
 				self.generateMesh();
@@ -306,13 +323,6 @@
 			var len = geometry.faces.length;
 			for (var i=0;i<len;i++){
 				var face = geometry.faces[i];
-
-				/*
-				if (face.neighbours.ab.normal.angleTo(face.normal) < minAngle && face.neighbours.ac.normal.angleTo(face.normal) < minAngle &&face.neighbours.bc.normal.angleTo(face.normal) < minAngle){
-
-					continue;
-				}
-				*/
 
 				//CURRENT FACE a, b, c
 				var a = face.a;
@@ -392,27 +402,22 @@
 
 			this.mesh = new THREE.Mesh(this.geometry, this.material);
 
-			this.smoothGeometry.computeFaceNormals();
+			//this.smoothGeometry.computeFaceNormals();
 
 			this.modifyRatio();
 			this.modifySmoothness();
 			this.modifyRoughness();
 			this.modifyPorosity();
 
+
 			//UV shiat
 			this.smoothGeometry.mergeVertices();
-			//this.smoothGeometry.computeFaceNormals();
 
-			//this.smoothGeometry.computeTangents();
 			this.smoothGeometry.computeFaceNormals();
 
 			this.mesh = new THREE.Mesh(this.smoothGeometry, this.material);
 			this.modifyScale();
 
-			// DOES NOT WORK DUE TO WRONGLY ASSIGNED UVs :/
-
-			//this.mesh = new THREE.Mesh(this.smoothGeometry, roughMaterial);
-			//console.log("rough");
 			this.mesh.name="ParametricCube";
 
 			// remove the old object from the renderer and add the new mesh
@@ -475,22 +480,22 @@
 		/* updates the smoothness/edginess of our shape */
 		this.modifySmoothness = function() {
 
-			// JUST A HELPER, AS this.geometry SOMEHOW IS NOT
-			// KNOWN IN THE function BELOW
-			if (parseInt(this.parameters.smoothness*4) > 3) {
-				// REMOVE CURRENT OBJECT
-				scene.remove(scene.getObjectByName("ParametricCube"));
-				this.smoothGeometry = undefined;
-				this.smoothGeometry = this.subdivideRigid(this.geometry.clone(), 2);//HERE
-				this.geometry.verticesNeedUpdate = true;
-				this.geometry.colorsNeedUpdate = true
-				// ADD NEW OBJECT
-				scene.add(this.mesh);
-			} else {
-				modifier = new THREE.SubdivisionModifier( 5-parseInt(this.parameters.smoothness*5) );
-				this.smoothGeometry = this.subdivideRigid(this.geometry.clone(), parseInt(this.parameters.smoothness*2));//HERE 4));
+				//map parameter smoothness to 0-3
+				mappedSmoothness = parseInt(this.parameters.smoothness*3.5);
+
+				//smoothen
+				modifier = new THREE.SubdivisionModifier( mappedSmoothness );
+				this.smoothGeometry = this.geometry.clone();
 				this.smooth();
-			}
+
+				//adjust subdivision inverse to smoothing
+				this.smoothGeometry = this.subdivideRigid(this.smoothGeometry, 3-mappedSmoothness);
+
+				console.log(this.parameters.roughness);
+				if (mappedSmoothness > 0 && this.parameters.roughness < 0.05){
+					this.smoothGeometry.computeFaceNormals();
+					this.smoothGeometry.computeVertexNormals();
+				}
 		};
 
 		this.smooth = function () {
@@ -523,13 +528,14 @@
 		this.modifyComplexity = function () {
 			console.log("modify complexity");
 
-			if (this.parameters.complexity*20 <= 1){
+			if (true){//this.parameters.complexity*20 <= 1){
 				//this.geometry = new THREE.BoxGeometry(1,1,1);
-				this.geometry = new THREE.SphereGeometry( 1, 5, 3 );
+				//this.geometry = new THREE.SphereGeometry( 1, 5, 3 );
+				this.geometry = new THREE.TetrahedronGeometry(1,parseInt(this.parameters.complexity*4));
 			} else {
 				//RANDOM POLYGON
 				var polyGeometry = new THREE.Geometry();
-				for (var i=0; i<this.parameters.complexity*20*10; i++){
+				for (var i=1; i<this.parameters.complexity*20*10; i++){
 					var v = new THREE.Vector3(	1*(Math.random()-.5),
 												1*(Math.random()-.5),
 												1*(Math.random()-.5));
@@ -648,9 +654,11 @@
 		};
 
 		this.modifyExtrude = function(geometry){
-			var weirdRndValue = .49;
+			var weirdRndValue = .39;
 			// DO STUFF //
-			var value = this.parameters.extrusion-.5;
+			var value = this.parameters.extrusion*.66;
+			var sharpness = this.parameters.sharpness;
+			console.log(sharpness);
 			//if (value == 0) return;
 			//value = .5;
 
@@ -662,35 +670,97 @@
 			})
 
 			geometry.faces.forEach(function(face,i){
-				console.log("neighbours");
-				console.log(face.neighbours);
 
-				// if (face.rnd < weirdRndValue) {
-				// 	newFaces.push(face);
-				// 	return;
-				// }
+				 if (face.rnd < weirdRndValue) {
+				 	newFaces.push(face);
+				 	return;
+				 }
 
 				var normal=face.normal.clone();
 				normal.multiplyScalar(value*face.rnd*3);
+
+				// re-built main face
 
 				var v1 = geometry.vertices[face.a].clone();
 				var v2 = geometry.vertices[face.b].clone();
 				var v3 = geometry.vertices[face.c].clone();
 
-				var centre = v1.clone();
-				centre.add(v2);
-				centre.add(v3);
-				centre.multiplyScalar(1/3);
-
+				// extrude main face
+				
 				v1.add(normal);
 				v2.add(normal);
 				v3.add(normal);
+
+				// de-scale towards centre == SHARPNESS
+				var centre = v1.clone();
+				centre.add(v2);
+				centre.add(v3);
+				var scalar = 3;
+
+
+				// the following part garantuees, that sharpness of neighbours
+				// does not produce detached faces
+
+				if (face.rnd > weirdRndValue &&
+					face.neighbours.ab.rnd > weirdRndValue &&
+					face.neighbours.ab.normal.angleTo(face.normal) < minAngle){
+
+					centre.add( geometry.vertices[face.neighbours.ab.a] );
+					centre.add( geometry.vertices[face.neighbours.ab.b] );
+					centre.add( geometry.vertices[face.neighbours.ab.c] );
+
+					scalar += 3;
+				}
+
+				if (face.rnd > weirdRndValue &&
+					face.neighbours.bc.rnd > weirdRndValue &&
+					face.neighbours.bc.normal.angleTo(face.normal) < minAngle){
+					
+					centre.add( geometry.vertices[face.neighbours.bc.a] );
+					centre.add( geometry.vertices[face.neighbours.bc.b] );
+					centre.add( geometry.vertices[face.neighbours.bc.c] );
+
+					scalar += 3;
+				}
+
+				if (face.rnd > weirdRndValue &&
+					face.neighbours.ac.rnd > weirdRndValue &&
+					face.neighbours.ac.normal.angleTo(face.normal) < minAngle){
+
+					centre.add( geometry.vertices[face.neighbours.ac.a] );
+					centre.add( geometry.vertices[face.neighbours.ac.b] );
+					centre.add( geometry.vertices[face.neighbours.ac.c] );
+
+					scalar += 3;
+				}
+
+				centre.multiplyScalar(1/scalar);
+
+				// get vectors to centre
+
+				var c1 = centre.clone();
+				c1.sub(v1);
+				c1.multiplyScalar(sharpness);
+				v1.add(c1);
+
+				var c2 = centre.clone();
+				c2.sub(v2);
+				c2.multiplyScalar(sharpness);
+				v2.add(c2);
+
+				var c3 = centre.clone();
+				c3.sub(v3);
+				c3.multiplyScalar(sharpness);
+				v3.add(c3);
 
 				var i=geometry.vertices.length;
 
 				geometry.vertices.push(v1);
 				geometry.vertices.push(v2);
 				geometry.vertices.push(v3);
+
+				// adjust neighbouring faces if necessary
+				// and add additional faces
 
 				if (face.rnd > weirdRndValue &&
 					face.neighbours.ab.rnd > weirdRndValue &&
