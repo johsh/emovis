@@ -1,0 +1,83 @@
+body {
+	font-family: 'Dosis', sans-serif;
+}
+
+
+canvas {
+		position:absolute;
+		z-index:0;
+		margin:0;
+		padding:0;
+		border:0;
+}
+
+div.emotion-select-bar {
+	width:100%;
+	position:absolute;
+	bottom:0;
+	left:0;
+	z-index:1;
+	margin:0;
+	padding:10px 0 0 0;
+	background-color:#fff;
+	border-top:1px solid #ccc;
+}
+
+.emotion-select-bar a {
+	color:#000;
+	text-decoration:none;
+	width:14.28%;
+	height:50px;
+	float:left;
+	display:block;
+	padding:0;
+	margin:0;
+	text-align: center;
+	border-bottom:10px solid #fff;
+}
+
+.emotion-select-bar a.active {
+	border-bottom:10px solid #000;
+}
+
+
+#parameter-sliders  {
+    padding:30px;
+    width:300px;
+    z-index:1;
+    position:absolute;
+    left:0;
+    top:0;
+}
+
+#parameter-sliders div  {
+    margin:10px 0 0 0;
+    height:30px;
+}
+
+
+#parameter-sliders img {
+    float:left;
+    width:30px;
+    height:30px;
+    margin:0;
+    padding:0;
+}
+
+#parameter-sliders input[type=range] {
+    border:none;
+    -webkit-appearance: none !important;
+    background:#000;
+    height:1px;
+    width:200px;
+    float:left;
+    margin:14px 20px 0 20px;
+    padding:0;
+}
+
+#parameter-sliders input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    background-color: #000;
+    width: 5px;
+    height: 15px;
+}
