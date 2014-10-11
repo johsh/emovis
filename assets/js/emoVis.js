@@ -211,12 +211,13 @@
 			  smoothness : this.gui.add(this.parameters, 'smoothness', 0, 1).listen(),
 			  ratio : this.gui.add(this.parameters, 'ratio', 0, 1).listen(),
 			  scale : this.gui.add(this.parameters, 'scale', 0, 1).listen(),
-			  //complexity : this.gui.add(this.parameters, 'complexity', 0, 1).listen(),
+			  complexity : this.gui.add(this.parameters, 'complexity', 0, 1).listen(),
 			  //surface : this.gui.add(this.parameters, 'surface', 0, 1).listen(),
 			  porosity :  this.gui.add(this.parameters, 'porosity', 0.0, 1.0).listen(),
 			  //symmetrie : this.gui.add(this.parameters, 'symmetrie', 0, 1).listen(),
 			  roughness : this.gui.add(this.parameters, 'roughness', 0, .1).listen(),
 			  extrusion : this.gui.add(this.parameters, 'extrusion', 0, 1).listen(),
+			  sharpness : this.gui.add(this.parameters, 'sharpness', 0, 1).listen(),
 			  //vertexShadowMultiplier : this.gui.add(this.parameters, 'vertexShadowMultiplier', 0, 5).listen(),
 				switchMaterial : this.gui.add(this.parameters, 'switchMaterial'),
 				//setWireframe : this.gui.add(this.parameters, 'setWireframe')
@@ -258,8 +259,21 @@
 			}
 		);
 
-
 		this.parameterBindings.extrusion.onChange(
+			function (value) {
+				self.modifyComplexity();
+				self.generateMesh();
+			}
+		);
+
+		this.parameterBindings.complexity.onChange(
+			function (value) {
+				self.modifyComplexity();
+				self.generateMesh();
+			}
+		);
+
+		this.parameterBindings.sharpness.onChange(
 			function (value) {
 				self.modifyComplexity();
 				self.generateMesh();
@@ -398,24 +412,19 @@
 
 			//UV shiat
 			this.smoothGeometry.mergeVertices();
-			//this.smoothGeometry.computeFaceNormals();
 
 			this.smoothGeometry.computeFaceNormals();
 
 			this.mesh = new THREE.Mesh(this.smoothGeometry, this.material);
 			this.modifyScale();
 
-			// DOES NOT WORK DUE TO WRONGLY ASSIGNED UVs :/
-
-			//this.mesh = new THREE.Mesh(this.smoothGeometry, roughMaterial);
-			//console.log("rough");
 			this.mesh.name="ParametricCube";
 
 			// remove the old object from the renderer and add the new mesh
 			this.resetObject();
 
-			//console.log("faces: "+this.smoothGeometry.faces.length);
-			//console.log("vertices: "+this.smoothGeometry.vertices.length);
+			console.log("faces: "+this.smoothGeometry.faces.length);
+			console.log("vertices: "+this.smoothGeometry.vertices.length);
 
 		};
 
@@ -482,7 +491,8 @@
 				//adjust subdivision inverse to smoothing
 				this.smoothGeometry = this.subdivideRigid(this.smoothGeometry, 3-mappedSmoothness);
 
-				if (mappedSmoothness > 0){
+				console.log(this.parameters.roughness);
+				if (mappedSmoothness > 0 && this.parameters.roughness < 0.05){
 					this.smoothGeometry.computeFaceNormals();
 					this.smoothGeometry.computeVertexNormals();
 				}
@@ -518,13 +528,14 @@
 		this.modifyComplexity = function () {
 			console.log("modify complexity");
 
-			if (this.parameters.complexity*20 <= 1){
+			if (true){//this.parameters.complexity*20 <= 1){
 				//this.geometry = new THREE.BoxGeometry(1,1,1);
-				this.geometry = new THREE.SphereGeometry( 1, 5, 3 );
+				//this.geometry = new THREE.SphereGeometry( 1, 5, 3 );
+				this.geometry = new THREE.TetrahedronGeometry(1,parseInt(this.parameters.complexity*4));
 			} else {
 				//RANDOM POLYGON
 				var polyGeometry = new THREE.Geometry();
-				for (var i=0; i<this.parameters.complexity*20*10; i++){
+				for (var i=1; i<this.parameters.complexity*20*10; i++){
 					var v = new THREE.Vector3(	1*(Math.random()-.5),
 												1*(Math.random()-.5),
 												1*(Math.random()-.5));
@@ -647,6 +658,7 @@
 			// DO STUFF //
 			var value = this.parameters.extrusion*.66;
 			var sharpness = this.parameters.sharpness;
+			console.log(sharpness);
 			//if (value == 0) return;
 			//value = .5;
 
@@ -685,6 +697,10 @@
 				centre.add(v3);
 				var scalar = 3;
 
+
+				// the following part garantuees, that sharpness of neighbours
+				// does not produce detached faces
+
 				if (face.rnd > weirdRndValue &&
 					face.neighbours.ab.rnd > weirdRndValue &&
 					face.neighbours.ab.normal.angleTo(face.normal) < minAngle){
@@ -720,6 +736,7 @@
 
 				centre.multiplyScalar(1/scalar);
 
+				// get vectors to centre
 
 				var c1 = centre.clone();
 				c1.sub(v1);
