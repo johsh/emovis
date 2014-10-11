@@ -173,7 +173,6 @@ function ParametricCube () {
         //GET NEIGHBOURS
         this.smoothGeometry = geometry;
         this.smoothGeometry.computeFaceNormals();
-        this.computeNeighbours(geometry);
 
         //INIT NEW GEOMETRY - SUCH THAT VERTICES ARE NOT MIXED UP
         var tmp = new THREE.Geometry();
@@ -221,7 +220,7 @@ function ParametricCube () {
             tmp.faces.push(new THREE.Face3(ac, bc, c));
         };
 
-        tmp.mergeVertices();
+        //tmp.mergeVertices();
         return tmp;
     };
 
@@ -254,20 +253,18 @@ function ParametricCube () {
 
     /* This function acts as a the pipeline that generates the mesh */
     this.generateMesh = function () {
+        console.log("generate mesh");
 
         // if there is no geometry, add it!
         if (this.smoothGeometry == undefined){
             this.smoothGeometry = this.geometry.clone();
         }
 
-
-
         this.mesh = new THREE.Mesh(this.geometry, this.material);
-
 
         //this.smoothGeometry.computeFaceNormals();
 
-        this.modifyRatio();
+        //this.modifyRatio();
 
         //this.modifyComplexity();
         this.modifySmoothness();
@@ -282,7 +279,7 @@ function ParametricCube () {
 
         this.mesh = new THREE.Mesh(this.smoothGeometry, this.material);
 
-        this.modifyScale();
+        this.modifyScaleRatio();
 
         this.mesh.name="ParametricCube";
 
@@ -309,7 +306,7 @@ function ParametricCube () {
         this.smoothGeometry = this.subdivideRigid(this.smoothGeometry, 3-mappedSmoothness);
 
         console.log(this.parameters.roughness);
-        if (mappedSmoothness > 0 && this.parameters.roughness.value < 0.05){
+        if (mappedSmoothness > 0 && this.parameters.roughness.value < 0.5){
             this.smoothGeometry.computeFaceNormals();
             this.smoothGeometry.computeVertexNormals();
         }
@@ -330,27 +327,24 @@ function ParametricCube () {
         this.smoothGeometry = tmp;
     };
 
-    this.modifyScale = function () {
+    this.modifyScaleRatio = function () {
         var scaleValue = this.parameters.scale.value*20;
-        var ratioValue = this.parameters.ratio.value;
+        var ratioValue = this.parameters.ratio.value*.6+.2;
         this.mesh.scale.set(scaleValue*ratioValue, scaleValue*(1-ratioValue), scaleValue*ratioValue);
     };
 
-    this.modifyRatio = function () {
+    /*this.modifyRatio = function () {
         var scaleValue = this.parameters.scale.value*20;
-        var ratioValue = this.parameters.ratio.value;
-        this.mesh.scale.set(this.scaleValue*this.parameters.ratio.value, this.scaleValue*(1-this.parameters.ratio.value), this.scaleValue*this.ratio);
-    };
+        var ratioValue = 1;//this.parameters.ratio.value*.8;
+        this.mesh.scale.set(scaleValue*ratioValue, scaleValue*(1-ratioValue), scaleValue*ratioValue);
+    };*/
 
     this.modifyComplexity = function () {
         console.log("modify complexity");
 
-        if (true){//this.parameters.complexity*20 <= 1){
-            //this.geometry = new THREE.BoxGeometry(1,1,1);
-            //this.geometry = new THREE.SphereGeometry( 1, 5, 3 );
-            this.geometry = new THREE.TetrahedronGeometry(1,parseInt(this.parameters.complexity.value*4));
-        } else {
-            //RANDOM POLYGON
+        this.geometry = new THREE.TetrahedronGeometry(1,parseInt(this.parameters.complexity.value*2.5));
+
+        /*  //RANDOM POLYGON
             var polyGeometry = new THREE.Geometry();
             for (var i=1; i<this.parameters.complexity.value*20*10; i++){
                 var v = new THREE.Vector3(	1*(Math.random()-.5),
@@ -360,17 +354,8 @@ function ParametricCube () {
                 polyGeometry.vertices.push(v);
             }
             this.geometry = QuickHull(polyGeometry);
-        }
+        */
         this.modifyExtrude(this.geometry);
-
-        //this.smoothGeometry = this.subdivideRigid(this.geometry.clone(), 1);
-
-        //this.mesh = this.generateMesh();
-        /*
-         this.mesh.scale.set(self.scaleValue*self.ratioValue,
-         self.scaleValue*(1-self.ratioValue),
-         self.scaleValue*self.ratioValue);
-         */
 
         if (viz != undefined) this.resetObject();
     };
@@ -381,7 +366,7 @@ function ParametricCube () {
             this.smoothGeometry.vertices[i].multiplyScalar( 1 +
                     noise.simplex3(this.smoothGeometry.vertices[i].x*50,
                             this.smoothGeometry.vertices[i].y*50,
-                            this.smoothGeometry.vertices[i].z*50) * this.parameters.roughness.value
+                            this.smoothGeometry.vertices[i].z*50) * this.parameters.roughness.value/5
             );
         }
 
@@ -475,7 +460,7 @@ function ParametricCube () {
         //if (value == 0) return;
         //value = .5;
 
-        this.computeNeighbours(geometry);
+        //this.computeNeighbours(geometry);
         var newFaces = [];
 
         geometry.faces.forEach(function(face,i){
@@ -514,7 +499,7 @@ function ParametricCube () {
             // the following part garantuees, that sharpness of neighbours
             // does not produce detached faces
 
-            if (face.rnd > weirdRndValue &&
+            /*if (face.rnd > weirdRndValue &&
                 face.neighbours.ab.rnd > weirdRndValue &&
                 face.neighbours.ab.normal.angleTo(face.normal) < minAngle){
 
@@ -545,7 +530,7 @@ function ParametricCube () {
                 centre.add( geometry.vertices[face.neighbours.ac.c] );
 
                 scalar += 3;
-            }
+            }*/
 
             centre.multiplyScalar(1/scalar);
 
@@ -575,40 +560,40 @@ function ParametricCube () {
             // adjust neighbouring faces if necessary
             // and add additional faces
 
-            if (face.rnd > weirdRndValue &&
+           /* if (face.rnd > weirdRndValue &&
                 face.neighbours.ab.rnd > weirdRndValue &&
                 face.neighbours.ab.normal.angleTo(face.normal) < minAngle){
                 face.neighbours.ab.rnd = face.rnd;
-            } else {
+            } else {*/
                 newFaces.push(new THREE.Face3(face.a, face.b, i+1));
                 newFaces.push(new THREE.Face3(face.a, i+1, i));
-            }
+            /*}
 
             if (face.rnd > weirdRndValue &&
                 face.neighbours.bc.rnd > weirdRndValue &&
                 face.neighbours.bc.normal.angleTo(face.normal) < minAngle){
                 face.neighbours.bc.rnd = face.rnd;
-            } else {
+            } else {*/
                 newFaces.push(new THREE.Face3(face.b, face.c, i+2));
                 newFaces.push(new THREE.Face3(face.b, i+2, i+1));
-            }
+            /*}
 
             if (face.rnd > weirdRndValue &&
                 face.neighbours.ac.rnd > weirdRndValue &&
                 face.neighbours.ac.normal.angleTo(face.normal) < minAngle){
                 face.neighbours.ac.rnd = face.rnd;
-            } else {
+            } else {*/
                 newFaces.push(new THREE.Face3(face.c, face.a, i));
                 newFaces.push(new THREE.Face3(face.c, i, i+2));
-            }
+            //}
 
             newFaces.push(new THREE.Face3(i, i+1, i+2));
             face = [];//kill old face
         });
 
         geometry.faces = newFaces;
-        geometry.mergeVertices();
-        geometry.computeFaceNormals();
+        //geometry.mergeVertices(); //REMOVE
+        //geometry.computeFaceNormals(); //REMOVE
         // END DO STUFF //
     }
 
