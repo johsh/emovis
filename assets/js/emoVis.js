@@ -63,7 +63,7 @@
 					depthTest:true,
 					map: texture,
 					alphaMap: alpha,
-					shading: THREE.FlatShading,
+					shading: THREE.SmoothShading,// THREE.FlatShading,
 					transparent: true
 				})
 		};
@@ -157,14 +157,14 @@
 		this.gui = new dat.GUI();
 
 		this.parameters = {
-			  smoothness: 1,
+			  smoothness: 0,
 			  ratio: .5,
 			  scale: .5,
 			  complexity: 0,
 			  surface: .5,
 			  symmetrie: 0,
 			  roughness: 0,
-			  extrusion: 0.0,
+			  extrusion: 0.5,
 			  vertexShadowMultiplier: 1.6,
 			  porosity: 0.0,
 
@@ -175,6 +175,8 @@
 			  	self.switchMaterial();
 			  }
 		};
+
+		var mappedSmoothness = 0;
 
 		/* this tupid functions returns all the values of the current parameters as object because javscript automatically would reference them */
 		this.extractParameterValues = function () {
@@ -307,13 +309,6 @@
 			for (var i=0;i<len;i++){
 				var face = geometry.faces[i];
 
-				/*
-				if (face.neighbours.ab.normal.angleTo(face.normal) < minAngle && face.neighbours.ac.normal.angleTo(face.normal) < minAngle &&face.neighbours.bc.normal.angleTo(face.normal) < minAngle){
-
-					continue;
-				}
-				*/
-
 				//CURRENT FACE a, b, c
 				var a = face.a;
 				var b = face.b;
@@ -392,18 +387,18 @@
 
 			this.mesh = new THREE.Mesh(this.geometry, this.material);
 
-			this.smoothGeometry.computeFaceNormals();
+			//this.smoothGeometry.computeFaceNormals();
 
 			this.modifyRatio();
 			this.modifySmoothness();
 			this.modifyRoughness();
 			this.modifyPorosity();
 
+
 			//UV shiat
 			this.smoothGeometry.mergeVertices();
 			//this.smoothGeometry.computeFaceNormals();
 
-			//this.smoothGeometry.computeTangents();
 			this.smoothGeometry.computeFaceNormals();
 
 			this.mesh = new THREE.Mesh(this.smoothGeometry, this.material);
@@ -418,8 +413,8 @@
 			// remove the old object from the renderer and add the new mesh
 			this.resetObject();
 
-			console.log("faces: "+this.smoothGeometry.faces.length);
-			console.log("vertices: "+this.smoothGeometry.vertices.length);
+			//console.log("faces: "+this.smoothGeometry.faces.length);
+			//console.log("vertices: "+this.smoothGeometry.vertices.length);
 
 		};
 
@@ -475,22 +470,16 @@
 		/* updates the smoothness/edginess of our shape */
 		this.modifySmoothness = function() {
 
-			// JUST A HELPER, AS this.geometry SOMEHOW IS NOT
-			// KNOWN IN THE function BELOW
-			if (parseInt(this.parameters.smoothness*4) > 3) {
-				// REMOVE CURRENT OBJECT
-				scene.remove(scene.getObjectByName("ParametricCube"));
-				this.smoothGeometry = undefined;
-				this.smoothGeometry = this.subdivideRigid(this.geometry.clone(), 2);//HERE
-				this.geometry.verticesNeedUpdate = true;
-				this.geometry.colorsNeedUpdate = true
-				// ADD NEW OBJECT
-				scene.add(this.mesh);
-			} else {
-				modifier = new THREE.SubdivisionModifier( 5-parseInt(this.parameters.smoothness*5) );
-				this.smoothGeometry = this.subdivideRigid(this.geometry.clone(), parseInt(this.parameters.smoothness*2));//HERE 4));
+				//map parameter smoothness to 0-3
+				mappedSmoothness = parseInt(this.parameters.smoothness*3.5);
+
+				//smoothen
+				modifier = new THREE.SubdivisionModifier( mappedSmoothness );
+				this.smoothGeometry = this.geometry.clone();
 				this.smooth();
-			}
+
+				//adjust subdivision inverse to smoothing
+				this.smoothGeometry = this.subdivideRigid(this.smoothGeometry, 3-mappedSmoothness);
 		};
 
 		this.smooth = function () {
@@ -648,7 +637,7 @@
 		};
 
 		this.modifyExtrude = function(geometry){
-			var weirdRndValue = .49;
+			var weirdRndValue = .39;
 			// DO STUFF //
 			var value = this.parameters.extrusion-.5;
 			//if (value == 0) return;
@@ -662,13 +651,11 @@
 			})
 
 			geometry.faces.forEach(function(face,i){
-				console.log("neighbours");
-				console.log(face.neighbours);
 
-				// if (face.rnd < weirdRndValue) {
-				// 	newFaces.push(face);
-				// 	return;
-				// }
+				 if (face.rnd < weirdRndValue) {
+				 	newFaces.push(face);
+				 	return;
+				 }
 
 				var normal=face.normal.clone();
 				normal.multiplyScalar(value*face.rnd*3);
