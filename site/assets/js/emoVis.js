@@ -4,7 +4,7 @@ var viz, renderer, scene, camera, controls, pointLight, modifier, minAngle, gui,
 $(document).ready( function() {
 
     /* intialize the noise generator */
-    noise.seed(Math.random());
+    noise.seed(0.5);
 
     modifier = new THREE.SubdivisionModifier(1);
     minAngle = .1;//IN RADIANS
@@ -133,7 +133,7 @@ function ParametricCube () {
             element.on("input change", function() {
                 parametricCube.parameters[$(this).attr("id")].value = $(this).val() * 0.01;
                 parametricCube.modifyComplexity();
-                parametricCube.generateMesh();
+                parametricCube.generateMesh($(this).attr("id"));
             });
         }
     };
@@ -267,10 +267,13 @@ function ParametricCube () {
 
         //this.smoothGeometry.computeFaceNormals();
 
-        this.modifyRatio();
 
         //this.modifyComplexity();
         this.modifySmoothness();
+        this.modifyScale();
+        this.modifyRatio();
+
+
         this.modifyRoughness();
         this.modifyPorosity();
 
@@ -282,7 +285,6 @@ function ParametricCube () {
 
         this.mesh = new THREE.Mesh(this.smoothGeometry, this.material);
 
-        this.modifyScale();
 
         this.mesh.name="ParametricCube";
 
@@ -331,15 +333,21 @@ function ParametricCube () {
     };
 
     this.modifyScale = function () {
-        var scaleValue = this.parameters.scale.value*20;
+        var scaleValue = this.parameters.scale.value*10;
         var ratioValue = this.parameters.ratio.value;
-        this.mesh.scale.set(scaleValue*ratioValue, scaleValue*(1-ratioValue), scaleValue*ratioValue);
+        for (var i=0; i<this.smoothGeometry.vertices.length; i++) {
+            this.smoothGeometry.vertices[i].multiplyScalar(scaleValue);
+        }
+        //this.mesh.scale.set(scaleValue*ratioValue, scaleValue*(1-ratioValue), scaleValue*ratioValue);
     };
 
     this.modifyRatio = function () {
-        var scaleValue = this.parameters.scale.value*20;
+        var scaleValue = this.parameters.scale.value*10;
         var ratioValue = this.parameters.ratio.value;
-        this.mesh.scale.set(this.scaleValue*this.parameters.ratio.value, this.scaleValue*(1-this.parameters.ratio.value), this.scaleValue*this.ratio);
+        //this.mesh.scale.set(this.scaleValue*this.parameters.ratio.value, this.scaleValue*(1-this.parameters.ratio.value), this.scaleValue*this.ratio);
+        for (var i=0; i<this.smoothGeometry.vertices.length; i++) {
+            this.smoothGeometry.vertices[i].multiply(new THREE.Vector3(scaleValue*this.parameters.ratio.value, scaleValue*(1-this.parameters.ratio.value), scaleValue*this.parameters.ratio.value));
+        }
     };
 
     this.modifyComplexity = function () {
@@ -379,9 +387,9 @@ function ParametricCube () {
         // compute the roughness and add it to the vertices
         for (var i=0; i<this.smoothGeometry.vertices.length; i++) {
             this.smoothGeometry.vertices[i].multiplyScalar( 1 +
-                    noise.simplex3(this.smoothGeometry.vertices[i].x*50,
-                            this.smoothGeometry.vertices[i].y*50,
-                            this.smoothGeometry.vertices[i].z*50) * this.parameters.roughness.value
+                    noise.simplex3(this.smoothGeometry.vertices[i].x*this.parameters.roughness.value,
+                            this.smoothGeometry.vertices[i].y*this.parameters.roughness.value,
+                            this.smoothGeometry.vertices[i].z*this.parameters.roughness.value) * 0.1
             );
         }
 
