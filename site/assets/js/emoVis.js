@@ -61,6 +61,12 @@ $(document).ready( function() {
     scene.add(topPointLight);
     scene.add(bottomPointLight);
 
+    var geometry = new THREE.PlaneGeometry( 10, 10 );
+    var plane = new THREE.Mesh( geometry, materials.redClay );
+    plane.rotation.x = -80*Math.PI / 180;
+    scene.add( plane );
+    plane.translateZ(-4);
+
     camera.position.set(0, 0, 20);
     document.body.appendChild(renderer.domElement);
 
@@ -274,17 +280,23 @@ function ParametricCube () {
 
         //UV shiat
         this.smoothGeometry.mergeVertices();
-
         this.smoothGeometry.computeFaceNormals();
 
         this.mesh = new THREE.Mesh(this.smoothGeometry, this.material);
-
         this.modifyScaleRatio();
 
         this.mesh.name="ParametricCube";
 
         // remove the old object from the renderer and add the new mesh
         this.resetObject();
+
+        var all = this.mesh.geometry.vertices.map(function(d){return d.y}).sort();
+        var _minY = Math.min.apply(Math, all);
+        var minY = _minY*this.parameters.scale.value*20*(.5+(1-this.parameters.ratio.value)*.6+.2);
+        console.log(minY);
+
+        this.mesh.translateY(-4-minY/2);
+
 
         console.log("faces: "+this.smoothGeometry.faces.length);
         console.log("vertices: "+this.smoothGeometry.vertices.length);
@@ -305,7 +317,6 @@ function ParametricCube () {
         //adjust subdivision inverse to smoothing
         this.smoothGeometry = this.subdivideRigid(this.smoothGeometry, 3-mappedSmoothness);
 
-        console.log(this.parameters.roughness);
         if (mappedSmoothness > 0 && this.parameters.roughness.value < 0.5){
             this.smoothGeometry.computeFaceNormals();
             this.smoothGeometry.computeVertexNormals();
@@ -330,7 +341,9 @@ function ParametricCube () {
     this.modifyScaleRatio = function () {
         var scaleValue = this.parameters.scale.value*20;
         var ratioValue = this.parameters.ratio.value*.6+.2;
+
         this.mesh.scale.set(scaleValue*ratioValue, scaleValue*(1-ratioValue), scaleValue*ratioValue);
+        this.mesh.translateZ(this.parameters.scale.value*20*(this.parameters.ratio.value));
     };
 
     /*this.modifyRatio = function () {
@@ -456,7 +469,7 @@ function ParametricCube () {
         // DO STUFF //
         var value = this.parameters.extrusion.value*.66;
         var sharpness = this.parameters.sharpness.value;
-        console.log(sharpness);
+
         //if (value == 0) return;
         //value = .5;
 
