@@ -63,10 +63,21 @@ $(document).ready( function() {
     document.body.appendChild(renderer.domElement);
 
     parametricCube = new ParametricCube();
+
+    var geometry = new THREE.PlaneGeometry( 20, 20 );
+    parametricCube.plane = new THREE.Mesh( geometry, new THREE.MeshLambertMaterial({ transparent: true, side: THREE.DoubleSide, map: new THREE.ImageUtils.loadTexture('../assets/images/plane-texture.png'), shading: THREE.FlatShading}));
+    console.log(parametricCube.plane);
+    parametricCube.plane.rotation.x = -80*Math.PI / 180;
+    scene.add(parametricCube.plane);
+
     parametricCube.initializeParameters();
     parametricCube.generateMesh();
     parametricCube.castShadow = true;
     parametricCube.receiveShadow = true;
+
+
+
+    parametricCube.plane.translateZ(-4);
 
     topPointLight.position.set(0, parametricCube.parameters.scale.value*10, parametricCube.parameters.scale.value*5);
     bottomPointLight.position.set(0, parametricCube.parameters.scale.value*-10, parametricCube.parameters.scale.value*5);
@@ -292,16 +303,25 @@ function ParametricCube () {
 
         //UV shiat
         this.smoothGeometry.mergeVertices();
-
         this.smoothGeometry.computeFaceNormals();
 
         this.mesh = new THREE.Mesh(this.smoothGeometry, this.material);
-
-
         this.mesh.name="ParametricCube";
 
         // remove the old object from the renderer and add the new mesh
         this.resetObject();
+
+        var all = this.mesh.geometry.vertices.map(function(d){return d.y}).sort();
+        var _minY = Math.min.apply(Math, all);
+        //var minY = _minY*this.parameters.scale.value*10*(.5+(1-this.parameters.ratio.value)*.6+.2);
+        //console.log(minY);
+
+
+        var size = Math.min(this.parameters.ratio.value*this.parameters.scale.value*3, (1-this.parameters.ratio.value)*this.parameters.scale.value*3);
+        parametricCube.plane.scale.x = size;
+        parametricCube.plane.scale.y = size;
+
+        //this.mesh.translateY(-4-minY/2);
 
         console.log("faces: "+this.smoothGeometry.faces.length);
         console.log("vertices: "+this.smoothGeometry.vertices.length);
@@ -322,7 +342,6 @@ function ParametricCube () {
         //adjust subdivision inverse to smoothing
         this.smoothGeometry = this.subdivideRigid(this.smoothGeometry, 3-mappedSmoothness);
 
-        console.log(this.parameters.roughness);
         if (mappedSmoothness > 0 && this.parameters.roughness.value < 0.5){
             this.smoothGeometry.computeFaceNormals();
             this.smoothGeometry.computeVertexNormals();
@@ -478,7 +497,7 @@ function ParametricCube () {
         // DO STUFF //
         var value = this.parameters.extrusion.value*.66;
         var sharpness = this.parameters.sharpness.value;
-        console.log(sharpness);
+
         //if (value == 0) return;
         //value = .5;
 
