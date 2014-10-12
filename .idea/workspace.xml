@@ -31,8 +31,8 @@
       <file leaf-file-name="index.html" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/site/edit-shape/index.html">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="-6.875" vertical-offset="0" max-vertical-offset="645">
-              <caret line="11" column="0" selection-start-line="11" selection-start-column="0" selection-end-line="11" selection-end-column="0" />
+            <state vertical-scroll-proportion="-23.125" vertical-offset="0" max-vertical-offset="765">
+              <caret line="37" column="48" selection-start-line="37" selection-start-column="48" selection-end-line="37" selection-end-column="48" />
               <folding>
                 <element signature="n#style#0;n#p#0;n#div#0;n#body#0;n#html#0;n#!!top" expanded="true" />
               </folding>
@@ -43,18 +43,8 @@
       <file leaf-file-name="emoVis.js" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/site/assets/js/emoVis.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.10489511" vertical-offset="0" max-vertical-offset="9720">
-              <caret line="7" column="0" selection-start-line="7" selection-start-column="0" selection-end-line="7" selection-end-column="0" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="asdf" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/site/assets/js/asdf">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="-23.615385" vertical-offset="11686" max-vertical-offset="12705">
-              <caret line="820" column="0" selection-start-line="820" selection-start-column="0" selection-end-line="829" selection-end-column="6" />
+            <state vertical-scroll-proportion="-0.35328755" vertical-offset="1965" max-vertical-offset="9825">
+              <caret line="107" column="4" selection-start-line="107" selection-start-column="4" selection-end-line="107" selection-end-column="4" />
               <folding />
             </state>
           </provider>
@@ -63,8 +53,8 @@
       <file leaf-file-name="style.css" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/site/assets/css/style.css">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0" vertical-offset="262" max-vertical-offset="1320">
-              <caret line="54" column="12" selection-start-line="54" selection-start-column="12" selection-end-line="54" selection-end-column="12" />
+            <state vertical-scroll-proportion="0.0" vertical-offset="240" max-vertical-offset="2220">
+              <caret line="32" column="19" selection-start-line="32" selection-start-column="4" selection-end-line="32" selection-end-column="19" />
               <folding />
             </state>
           </provider>
@@ -81,10 +71,10 @@
     <option name="changedFiles">
       <list>
         <option value="$PROJECT_DIR$/site/assets/css/jquery-ui.css" />
-        <option value="$PROJECT_DIR$/site/assets/css/style.css" />
-        <option value="$PROJECT_DIR$/site/edit-shape/index.html" />
         <option value="$PROJECT_DIR$/site/assets/js/asdf" />
         <option value="$PROJECT_DIR$/site/assets/js/emoVis.js" />
+        <option value="$PROJECT_DIR$/site/edit-shape/index.html" />
+        <option value="$PROJECT_DIR$/site/assets/css/style.css" />
       </list>
     </option>
   </component>
@@ -379,12 +369,12 @@
       <changelist id="fe23e8fe-89cd-4f79-900b-91a8ca797e01" name="Default" comment="" />
       <created>1413034657231</created>
       <updated>1413034657231</updated>
-      <workItem from="1413034665874" duration="14119000" />
+      <workItem from="1413034665874" duration="21238000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="14119000" />
+    <option name="totallyTimeSpent" value="21238000" />
   </component>
   <component name="TodoView" selected-index="0">
     <todo-panel id="selected-file">
@@ -479,36 +469,28 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/site/assets/css/style.css">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0" vertical-offset="157" max-vertical-offset="1320">
-          <caret line="54" column="12" selection-start-line="54" selection-start-column="12" selection-end-line="54" selection-end-column="12" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/site/edit-shape/index.html">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="-6.875" vertical-offset="0" max-vertical-offset="645">
-          <caret line="11" column="0" selection-start-line="11" selection-start-column="0" selection-end-line="11" selection-end-column="0" />
+        <state vertical-scroll-proportion="-23.125" vertical-offset="0" max-vertical-offset="765">
+          <caret line="37" column="48" selection-start-line="37" selection-start-column="48" selection-end-line="37" selection-end-column="48" />
           <folding>
             <element signature="n#style#0;n#p#0;n#div#0;n#body#0;n#html#0;n#!!top" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/site/assets/js/asdf">
+    <entry file="file://$PROJECT_DIR$/site/assets/css/style.css">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="-23.615385" vertical-offset="11686" max-vertical-offset="12705">
-          <caret line="820" column="0" selection-start-line="820" selection-start-column="0" selection-end-line="829" selection-end-column="6" />
+        <state vertical-scroll-proportion="0.0" vertical-offset="240" max-vertical-offset="2220">
+          <caret line="32" column="19" selection-start-line="32" selection-start-column="4" selection-end-line="32" selection-end-column="19" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/site/assets/js/emoVis.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.10489511" vertical-offset="0" max-vertical-offset="9720">
-          <caret line="7" column="0" selection-start-line="7" selection-start-column="0" selection-end-line="7" selection-end-column="0" />
+        <state vertical-scroll-proportion="-0.35328755" vertical-offset="1965" max-vertical-offset="9825">
+          <caret line="107" column="4" selection-start-line="107" selection-start-column="4" selection-end-line="107" selection-end-column="4" />
           <folding />
         </state>
       </provider>
