@@ -12,9 +12,9 @@ $(document).ready( function() {
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(75, $(window).innerWidth() / $(window).innerHeight(), 0.1, 1000);
     //controls = new THREE.OrbitControls( camera );
-    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha:true });
     renderer.setSize($(window).innerWidth() - 10, $(window).innerHeight() - 10);
-    renderer.setClearColor(0xffffff, 1);
+    renderer.setClearColor(0x000000, 0);
 
     renderer.shadowMapEnabled = true;
     renderer.shadowMapSoft = true;
@@ -89,8 +89,8 @@ $(document).ready( function() {
         requestAnimationFrame(render);
         theta += 0.005;
         parametricCube.generateMesh();
-        parametricCube.mesh.rotation.y = theta;
-
+        parametricCube.mesh.rotation.y = Math.sin(theta*0.5)*Math.PI*2;
+        parametricCube.mesh.rotation.x = Math.cos(theta*0.5)*Math.PI*2;
         renderer.render(scene, camera);
     }
 
@@ -101,22 +101,21 @@ $(document).ready( function() {
     });
 
     /* bind the switching to buttons */
-    $('.emotion-select-bar a').click(function () {
-        $('.emotion-select-bar a')
+    $('#emotion-select-bar a').click(function () {
+        $('#emotion-select-bar a')
             .removeClass('active');
         $(this)
             .addClass('active');
         parametricCube.switchEmotion($(this).attr('href'));
     });
 
-    $('#navigation #select').mouseover(function () {
-        $('#navigation #select li').removeClass("hidden");
+    $('.screenshot').click(function() {
+        $.post( "../add-entry.php", { emotions: parametricCube.emotions, images: renderer.domElement.toDataURL("image/png")})
+            .done(function( data ) {
+                console.log(data);
+        });
     });
 
-    $('#navigation #select').mouseout(function () {
-        $('#navigation #select li').addClass("hidden");
-        $('#navigation #select li.active.hidden').removeClass("hidden");
-    });
 });
 
 //PARAMETRIC CUBES
@@ -144,6 +143,19 @@ function ParametricCube () {
 
     this.initializeParameters = function() {
 
+
+        this.emotions = {
+
+            'anger': this.extractParameterValues(),
+            'disgust':this.extractParameterValues(),
+            'anger':this.extractParameterValues(),
+            'joy':this.extractParameterValues(),
+            'suprise':this.extractParameterValues(),
+            'despise':this.extractParameterValues(),
+            'sadness':this.extractParameterValues(),
+            'fear':this.extractParameterValues()
+        };
+
         /* this object keeps all parameters, which are used to generate the current shape */
         /* iterate over all parameters and generate their dom-element-sliders */
         for (parameter in this.parameters) {
@@ -156,10 +168,11 @@ function ParametricCube () {
             element = $("#"+parameter);
             element.on("input change", function() {
                 parametricCube.parameters[$(this).attr("id")].value = $(this).val() * 0.01;
+                parametricCube.emotions[parametricCube.currentEmotion] = parametricCube.extractParameterValues(); // copy the current values to the saved emotions
                 parametricCube.modifyComplexity();
                 parametricCube.generateMesh($(this).attr("id"));
-                topPointLight.position.set(0, parametricCube.parameters.scale.value*10, parametricCube.parameters.scale.value*5);
-                bottomPointLight.position.set(0, parametricCube.parameters.scale.value*-10, parametricCube.parameters.scale.value*5);
+                topPointLight.position.set(0, parametricCube.parameters.scale.value*10, Math.sin(theta)*parametricCube.parameters.scale.value*-5);
+                bottomPointLight.position.set(0, parametricCube.parameters.scale.value*-10, Math.sin(theta)*parametricCube.parameters.scale.value*-5);
             });
         }
     };
@@ -167,23 +180,47 @@ function ParametricCube () {
     /* the currently selected emotion */
     this.currentEmotion = "anger";
 
+    this.emotions = {};
+
+    /* this tupid functions returns all the values of the current parameters as object because javscript automatically would reference them */
+    this.extractParameterValues = function () {
+        return {
+            'smoothness' : this.parameters.smoothness.value,
+            'porosity' : this.parameters.porosity.value,
+            'ratio' : this.parameters.ratio.value,
+            'scale' : this.parameters.scale.value,
+            'roughness' : this.parameters.roughness.value,
+            'extrusion' : this.parameters.extrusion.value,
+            'sharpness' : this.parameters.sharpness.value
+        };
+    }
+
     // this object hols the event bindings for every parameter
 
     this.switchEmotion = function (hashtag) {
+
         // save the values
 
-        this.emotionValues[this.currentEmotion] = this.extractParameterValues();
         console.log(this.extractParameterValues());
+
         // update current emotion
         this.currentEmotion = hashtag.replace("#edit-", "");
-        // copy the existing values to the sliders
 
-        this.parameters.porosity = this.emotionValues[this.currentEmotion].porosity;
-        this.parameters.ratio.value = this.emotionValues[this.currentEmotion].ratio;
-        this.parameters.scale.value = this.emotionValues[this.currentEmotion].scale;
-        this.parameters.roughness.value = this.emotionValues[this.currentEmotion].roughness;
-        this.parameters.extrusion.value = this.emotionValues[this.currentEmotion].extrusion;
-        this.parameters.smoothness = this.emotionValues[this.currentEmotion].smoothness;
+
+        // copy the existing values to the variables
+        this.parameters.porosity.value = this.emotions[this.currentEmotion].porosity;
+        this.parameters.ratio.value = this.emotions[this.currentEmotion].ratio;
+        this.parameters.scale.value = this.emotions[this.currentEmotion].scale;
+        this.parameters.roughness.value = this.emotions[this.currentEmotion].roughness;
+        this.parameters.extrusion.value = this.emotions[this.currentEmotion].extrusion;
+        this.parameters.smoothness.value = this.emotions[this.currentEmotion].smoothness;
+        this.parameters.sharpness.value = this.emotions[this.currentEmotion].sharpness;
+
+        // update the sliders
+        for (parameter in this.parameters) {
+            $("#"+parameter).val(this.parameters[parameter].value*100);
+        }
+
         // regenerate the mesh with the updated values
         this.generateMesh();
     };
@@ -290,10 +327,14 @@ function ParametricCube () {
 
         //this.smoothGeometry.computeFaceNormals();
 
+        this.modifyScaleRatio();
+
+
         //this.modifyComplexity();
         this.modifySmoothness();
 
-        this.modifyScaleRatio();
+
+
 
         this.modifyRoughness();
         this.modifyPorosity();
@@ -317,14 +358,16 @@ function ParametricCube () {
         //console.log(minY);
 
 
-        var size = Math.min(this.parameters.ratio.value*this.parameters.scale.value*3, (1-this.parameters.ratio.value)*this.parameters.scale.value*3);
-        parametricCube.plane.scale.x = size;
-        parametricCube.plane.scale.y = size;
+        var sizex = Math.min(this.parameters.ratio.value*this.parameters.scale.value*3, (1-this.parameters.ratio.value)*this.parameters.scale.value*3);
+        var sizey = Math.max(this.parameters.ratio.value*this.parameters.scale.value*3, (1-this.parameters.ratio.value)*this.parameters.scale.value*3);
+
+        parametricCube.plane.scale.x = sizex;
+        parametricCube.plane.scale.y = sizex;
 
         //this.mesh.translateY(-4-minY/2);
 
-        console.log("faces: "+this.smoothGeometry.faces.length);
-        console.log("vertices: "+this.smoothGeometry.vertices.length);
+        //console.log("faces: "+this.smoothGeometry.faces.length);
+        //console.log("vertices: "+this.smoothGeometry.vertices.length);
 
     };
 
@@ -366,7 +409,7 @@ function ParametricCube () {
     this.modifyScaleRatio = function () {
         var scaleValue = this.parameters.scale.value*20;
         //var ratioValue = this.parameters.ratio.value*.6+.2;
-        //this.mesh.scale.set(scaleValue*ratioValue, scaleValue*(1-ratioValue), scaleValue*ratioValue);
+        // this.mesh.scale.set(scaleValue*ratioValue, scaleValue*(1-ratioValue), scaleValue*ratioValue);
         for (var i=0; i<this.smoothGeometry.vertices.length; i++) {
             this.smoothGeometry.vertices[i].multiply(new THREE.Vector3(scaleValue*this.parameters.ratio.value, scaleValue*(1-this.parameters.ratio.value), scaleValue*this.parameters.ratio.value));
         }
@@ -505,15 +548,20 @@ function ParametricCube () {
         var newFaces = [];
 
         geometry.faces.forEach(function(face,i){
-            face.rnd = Math.abs(noise.simplex2(i,100));
+            face.rnd = 1.0;//Math.abs(noise.simplex2(i,100));
         })
 
         geometry.faces.forEach(function(face,i){
 
+
+
+            /*
             if (face.rnd < weirdRndValue) {
                 newFaces.push(face);
                 return;
             }
+
+            */
 
             var normal=face.normal.clone();
             normal.multiplyScalar(value*face.rnd*3);

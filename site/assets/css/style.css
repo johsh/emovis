@@ -1,5 +1,18 @@
-body {
-	font-family: 'Dosis', sans-serif;
+body { background-color: #cecece; }
+p, h1, h2, h3 { font-family: 'Dosis', sans-serif;}
+
+
+h1, h2, h3{
+    margin: 20px 0;
+    font-weight:200;
+    text-transform: uppercase;
+}
+
+h1 { font-size: 4.096rem;line-height: 4.2rem; }
+
+
+ p {
+    font-size: 1.2rem;
 }
 
 a {
@@ -9,105 +22,109 @@ a {
 
 
 canvas {
-		position:absolute;
-		z-index:0;
-		margin:0;
-		padding:0;
-		border:0;
+    position:absolute;
+    z-index:0;
+    margin:0;
+    padding:0;
+    border:0;
+    left:0;
+    top:0;
 }
 
-div.emotion-select-bar {
-	width:100%;
-	position:absolute;
-	bottom:0;
-	left:0;
-	z-index:1;
-	margin:0;
-	padding:10px 0 0 0;
-	background-color:#fff;
-	border-top:1px solid #ccc;
-}
-
-.emotion-select-bar a {
-	color:#000;
-	text-decoration:none;
-	width:14.28%;
-	height:50px;
-	float:left;
-	display:block;
-	padding:0;
-	margin:0;
-	text-align: center;
-	border-bottom:10px solid #000;
-}
-
-.emotion-select-bar a:hover {
-
-}
-
-.emotion-select-bar a.active {
-	border-bottom:10px solid #39b54a;
-}
-
-#navigation {
+#emotion-select-bar {
     width:100%;
     position:absolute;
-    top:0;
-    left:0;
+    bottom:0;
+	z-index:1;
+    height:50px;
+    margin:0;
+    padding:0;
+}
+
+#emotion-select-bar .container {
+}
+
+#emotion-select-bar a {
+    padding:10px 0 10px 0;
+    display:block;
+	color:#000;
+	text-decoration:none;
+	text-align: center;
+	border-bottom:10px solid #000;
+    background-color:#39b54a;
+    font-size: 1.2rem;
+}
+
+#emotion-select-bar a:hover { }
+#emotion-select-bar a.active { color:#fff; border-bottom:10px solid #39b54a; }
+
+#navigation {
     z-index:1;
-    height:100px;
-    border-bottom:1px solid #000;
-    background-color: rgba(255, 255, 255, 0.9);
+    height:60px;
+    background-color: #cecece;
 }
 
 #navigation ul#select {
     border:none;
-    height:100px;
-    width:200px;
-    padding:20px;
-    margin:0;
     list-style: none;
+    background-color: #cecece;
 }
 
 #navigation ul#select li,
 #navigation ul#select li.active {
     border:none;
-    height:20px;
-    width:200px;
-    padding:20px;
     margin:0;
-    cursor: pointer;
+    padding:0;
+    display:block;
+
+}
+
+
+#navigation ul#select li.active {
+    background-color: #fff;
+    opacity:1.0;
+
+
 }
 
 #navigation ul#select li.hidden {
-     height:0px;
-     margin:0;
-     padding:0;
-     display:none
+     display:none;
+     opacity:0.0;
  }
 
 
-#navigation ul#select li a{
+#navigation ul#select li a {
+    color:#39b54a;
     font-size: 20px;
     text-transform: uppercase;
     font-weight: 500;
-    letter-spacing: 3;
+    letter-spacing: 3px;
+    margin:0;
+    padding:20px 20px 20px 52px;
+    display:block;
+}
+
+a#introduction {
+    background-image: url(../images/select-arrows.svg);
+    background-repeat: no-repeat;
+    background-position: 20px 15px;
 }
 
 #navigation ul#select li:hover,
 #navigation ul#select li:hover a{
     background-color: #39b54a;
     color:#fff;
+    box-shadow: 0px 6px 0px 0px rgba(0, 0, 0, 0.25);
+
 }
 
 #parameter-sliders  {
     padding:30px;
-    width:300px;
+    width:250px;
     z-index:1;
     position:absolute;
-    left:0;
-    top:200px;
-    background-color: #fff;
+    left:100px;
+    top:300px;
 }
 
 #parameter-sliders div  {
@@ -129,7 +146,7 @@ div.emotion-select-bar {
     -webkit-appearance: none !important;
     background:#39b54a;
     height:1px;
-    width:200px;
+    width:150px;
     float:left;
     margin:14px 20px 0 20px;
     padding:0;
@@ -141,3 +158,49 @@ div.emotion-select-bar {
     width: 5px;
     height: 15px;
 }
+
+.gallery-preview { display:block; margin-bottom: 20px;}
+
+.gallery-preview .thumbnail {
+    display:block;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    height:200px;
+    border:5px solid #000;
+    box-shadow: 0px 6px 0px 0px rgba(0, 0, 0, 0.25);
+}
+
+.gallery-preview:hover .thumbnail{
+    border:5px solid #39b54a;
+    background-color: #fff;
+    box-shadow: 0px 6px 0px 0px rgba(0, 0, 0, 0.25);
+}
+
+body#teaser{
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-position: center bottom;
+}
+
+body#teaser h1 {
+    margin:80px 0;
+}
+
+.gallery-preview .text {
+    display:block;
+    font-size:1.2rem;
+    text-align: center;
+    padding:20px;
+}
+
+
+* {
+    transition: border 0.5s, background-color 0.5s, height 0.5s, width 0.5s, opacity: 05s;
+;
+}
+
+
+
+
